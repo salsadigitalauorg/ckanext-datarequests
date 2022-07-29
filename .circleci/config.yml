@@ -26,7 +26,8 @@ jobs:
       - run:
           command: .circleci/build.sh
           environment:
-            CKAN_VERSION: 2.9.5
+            CKAN_VERSION: ckan-2.9.5
+            PYTHON_VERSION: py3
       - run: .circleci/test.sh
       - run:
           name: Process artifacts

@@ -54,13 +54,13 @@ class MixinPlugin(p.SingletonPlugin):
                 ('GET', 'POST',),
             ),
             (
-                "/{}/follow/<datarequest_id>".format(constants.DATAREQUESTS_MAIN_PATH),
+                "/{}/follow/<id>".format(constants.DATAREQUESTS_MAIN_PATH),
                 "follow",
                 controller_functions.follow,
                 ('POST',),
             ),
             (
-                "/{}/unfollow/<datarequest_id>".format(constants.DATAREQUESTS_MAIN_PATH),
+                "/{}/unfollow/<id>".format(constants.DATAREQUESTS_MAIN_PATH),
                 "unfollow",
                 controller_functions.unfollow,
                 ('POST',),

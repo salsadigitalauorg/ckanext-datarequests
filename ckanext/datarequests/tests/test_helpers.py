@@ -35,14 +35,15 @@ class HelpersTest(unittest.TestCase):
         self.db_patch = patch('ckanext.datarequests.helpers.db')
         self.db_patch.start()
 
-        self.c_patch = patch('ckanext.datarequests.helpers.c')
-        self.c = self.c_patch.start()
+        self._c = helpers.c
+        helpers.c = MagicMock()
+        helpers.c.userobj.id = '12345'
 
     def tearDown(self):
         self.tk_patch.stop()
         self.model_patch.stop()
         self.db_patch.stop()
-        self.c_patch.stop()
+        helpers.c = self._c
 
     def test_get_comments_number(self):
         # Mocking
@@ -112,7 +113,7 @@ class HelpersTest(unittest.TestCase):
 
         self.assertTrue(helpers.is_following_datarequest(datarequest_id))
 
-        helpers.db.DataRequestFollower.get.assert_called_once_with(datarequest_id=datarequest_id, user_id=self.c.userobj.id)
+        helpers.db.DataRequestFollower.get.assert_called_once_with(datarequest_id=datarequest_id, user_id='12345')
 
     def test_is_following_datarequest_false(self):
         datarequest_id = 'example_id'
@@ -120,4 +121,4 @@ class HelpersTest(unittest.TestCase):
 
         self.assertFalse(helpers.is_following_datarequest(datarequest_id))
 
-        helpers.db.DataRequestFollower.get.assert_called_once_with(datarequest_id=datarequest_id, user_id=self.c.userobj.id)
+        helpers.db.DataRequestFollower.get.assert_called_once_with(datarequest_id=datarequest_id, user_id='12345')

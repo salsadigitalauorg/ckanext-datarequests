@@ -10,13 +10,15 @@ format = pylint
 
 # Show the source of errors.
 show_source = True
+statistics = True
 
 max-complexity = 10
+max-line-length = 127
 
 # List ignore rules one per line.
 ignore =
+    C901
     E241
     E266
     E501
-    C901
     W503

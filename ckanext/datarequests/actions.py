@@ -19,8 +19,11 @@
 
 
 import datetime
-import cgi
 import logging
+try:
+    from html import escape
+except ImportError:
+    from cgi import escape
 
 from ckan import model
 from ckan.lib import mailer
@@ -132,7 +135,7 @@ def _dictize_comment(comment):
 
 
 def _undictize_comment_basic(comment, data_dict):
-    comment.comment = cgi.escape(data_dict.get('comment', ''))
+    comment.comment = escape(data_dict.get('comment', ''))
     comment.datarequest_id = data_dict.get('datarequest_id', '')
 
 

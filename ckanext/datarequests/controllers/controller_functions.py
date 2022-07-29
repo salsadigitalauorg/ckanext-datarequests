@@ -416,11 +416,11 @@ def delete_comment(datarequest_id, comment_id):
         return tk.abort(403, tk._('You are not authorized to delete this comment'))
 
 
-def follow(datarequest_id):
+def follow(id):
     # Method is not called
     pass
 
 
-def unfollow(datarequest_id):
+def unfollow(id):
     # Method is not called
     pass

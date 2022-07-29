@@ -1,0 +1,17 @@
+# See https://docs.ckan.org/en/2.9/contributing/frontend/assets.html
+
+edit_comments-js:
+  contents:
+    - edit_comment.js
+  output: datarequest/%(version)s_edit_comment.js
+  extra:
+    preload:
+      - vendor/jquery
+
+datarequest_close-js:
+  contents:
+    - datarequest_close.js
+  output: datarequest/%(version)s_datarequest_close.js
+  extra:
+    preload:
+      - vendor/jquery

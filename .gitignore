@@ -1,3 +1,12 @@
+# archiver settings should not be checked in - only its template
+ckanext/archiver/settings.py
+
+.DS_Store
+# vim
+*.sw?
+# emacs
+*~
+
 .ropeproject
 node_modules
 bower_components
@@ -15,7 +24,13 @@ env/
 build/
 develop-eggs/
 dist/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
 sdist/
+var/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -38,6 +53,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+test/screenshots
 
 # Translations
 *.mo
@@ -51,4 +67,9 @@ docs/_build/
 .env.local
 screenshots
 !/test/screenshots/.gitkeep
+
+# PyBuilder
+target/
+
+#Intellij
 .idea

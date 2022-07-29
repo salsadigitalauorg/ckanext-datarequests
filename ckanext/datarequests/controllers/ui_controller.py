@@ -37,8 +37,8 @@ class DataRequestsUI(BaseController):
     def delete_comment(self, datarequest_id, comment_id):
         return controller.delete_comment(datarequest_id, comment_id)
 
-    def follow(self, datarequest_id):
-        return controller.follow(datarequest_id)
+    def follow(self, id):
+        return controller.follow(id)
 
-    def unfollow(self, datarequest_id):
-        return controller.unfollow(datarequest_id)
+    def unfollow(self, id):
+        return controller.unfollow(id)
