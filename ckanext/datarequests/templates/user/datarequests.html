@@ -13,6 +13,6 @@
 {% block secondary_content %}
   {{ super() }}
   {% for facet in c.facet_titles %}
-    {{ h.snippet('snippets/facet_list.html', title=c.facet_titles[facet], name=facet, extras={'id': c.user_dict.name}) }}
+    {{ h.snippet('snippets/facet_list.html', title=c.facet_titles[facet], name=facet, extras={'id': user.name}) }}
   {% endfor %}
 {% endblock %}

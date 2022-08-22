@@ -1,10 +1,7 @@
 {% import 'macros/form.html' as form %}
 
-{% if h.ckan_version() > '2.9' %}
-    {% snippet "snippets/edit_comment_asset.html" %}
-{% else %}
-    {% snippet "snippets/edit_comment_resource.html" %}
-{% endif %}
+{% set type = 'asset' if h.is_ckan_29() else 'resource' %}
+{% include "snippets/edit_comment_" ~ type ~ ".html" %}
 
 <form class="dataset-form {{ 'comment-edit-form' if comment_id else 'comment-wrapper' }} {{ 'hide' if comment_id and not (focus and errors) }} form-horizontal" id="comment-form{{ '-' + comment_id if comment_id }}" method="post" data-module="basic-form" action enctype="multipart/form-data">
 

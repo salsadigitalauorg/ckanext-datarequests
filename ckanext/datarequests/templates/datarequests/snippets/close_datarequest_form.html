@@ -9,11 +9,8 @@
 
   {% block closing_circumstance %}
     {% if h.closing_circumstances_enabled %}
-        {% if h.ckan_version() > '2.9' %}
-            {% snippet "snippets/datarequest_close_asset.html" %}
-        {% else %}
-            {% snippet "snippets/datarequest_close_resource.html" %}
-        {% endif %}
+        {% set type = 'asset' if h.is_ckan_29() else 'resource' %}
+        {% include "snippets/datarequest_close_" ~ type ~ ".html" %}
         {% set close_circumstances = h.get_closing_circumstances() %}
         {% set selected_close_circumstance = datarequest.get('close_circumstance', '') %}
 

@@ -4,14 +4,12 @@
 #
 set -e
 
+CKAN_ACTION_URL=${CKAN_SITE_URL}api/action
 CKAN_USER_NAME="${CKAN_USER_NAME:-admin}"
 CKAN_DISPLAY_NAME="${CKAN_DISPLAY_NAME:-Administrator}"
 CKAN_USER_EMAIL="${CKAN_USER_EMAIL:-admin@localhost}"
-CKAN_ACTION_URL=http://ckan:3000/api/action
 
-if [ "$VENV_DIR" != "" ]; then
-  . ${VENV_DIR}/bin/activate
-fi
+. ${APP_DIR}/scripts/activate
 
 add_user_if_needed () {
     echo "Adding user '$2' ($1) with email address [$3]"
@@ -62,24 +60,24 @@ echo "Creating ${TEST_ORG_TITLE} organisation:"
 
 TEST_ORG=$( \
     curl -LsH "Authorization: ${API_KEY}" \
-    --data "name=${TEST_ORG_NAME}&title=${TEST_ORG_TITLE}" \
+    --data '{"name": "'"${TEST_ORG_NAME}"'", "title": "'"${TEST_ORG_TITLE}"'"}' \
     ${CKAN_ACTION_URL}/organization_create
 )
 
-TEST_ORG_ID=$(echo $TEST_ORG | python $APP_DIR/scripts/extract-id.py)
+TEST_ORG_ID=$(echo $TEST_ORG | $PYTHON $APP_DIR/scripts/extract-id.py)
 
 echo "Assigning test users to '${TEST_ORG_TITLE}' organisation (${TEST_ORG_ID}):"
 
 curl -LsH "Authorization: ${API_KEY}" \
-    --data "id=${TEST_ORG_ID}&object=test_org_admin&object_type=user&capacity=admin" \
+    --data '{"id": "'"${TEST_ORG_ID}"'", "object": "test_org_admin", "object_type": "user", "capacity": "admin"}' \
     ${CKAN_ACTION_URL}/member_create
 
 curl -LsH "Authorization: ${API_KEY}" \
-    --data "id=${TEST_ORG_ID}&object=test_org_editor&object_type=user&capacity=editor" \
+    --data '{"id": "'"${TEST_ORG_ID}"'", "object": "test_org_editor", "object_type": "user", "capacity": "editor"}' \
     ${CKAN_ACTION_URL}/member_create
 
 curl -LsH "Authorization: ${API_KEY}" \
-    --data "id=${TEST_ORG_ID}&object=test_org_member&object_type=user&capacity=member" \
+    --data '{"id": "'"${TEST_ORG_ID}"'", "object": "test_org_member", "object_type": "user", "capacity": "member"}' \
     ${CKAN_ACTION_URL}/member_create
 ##
 # END.
@@ -102,31 +100,31 @@ echo "Creating ${DR_ORG_TITLE} Organisation:"
 
 DR_ORG=$( \
     curl -LsH "Authorization: ${API_KEY}" \
-    --data "name=${DR_ORG_NAME}&title=${DR_ORG_TITLE}" \
+    --data '{"name": "'"${DR_ORG_NAME}"'", "title": "'"${DR_ORG_TITLE}"'"}' \
     ${CKAN_ACTION_URL}/organization_create
 )
 
-DR_ORG_ID=$(echo $DR_ORG | python $APP_DIR/scripts/extract-id.py)
+DR_ORG_ID=$(echo $DR_ORG | $PYTHON $APP_DIR/scripts/extract-id.py)
 
 echo "Assigning test users to ${DR_ORG_TITLE} Organisation:"
 
 curl -LsH "Authorization: ${API_KEY}" \
-    --data "id=${DR_ORG_ID}&object=dr_admin&object_type=user&capacity=admin" \
+    --data '{"id": "'"${DR_ORG_ID}"'", "object": "dr_admin", "object_type": "user", "capacity": "admin"}' \
     ${CKAN_ACTION_URL}/member_create
 
 curl -LsH "Authorization: ${API_KEY}" \
-    --data "id=${DR_ORG_ID}&object=dr_editor&object_type=user&capacity=editor" \
+    --data '{"id": "'"${DR_ORG_ID}"'", "object": "dr_editor", "object_type": "user", "capacity": "editor"}' \
     ${CKAN_ACTION_URL}/member_create
 
 curl -LsH "Authorization: ${API_KEY}" \
-    --data "id=${DR_ORG_ID}&object=dr_member&object_type=user&capacity=member" \
+    --data '{"id": "'"${DR_ORG_ID}"'", "object": "dr_member", "object_type": "user", "capacity": "member"}' \
     ${CKAN_ACTION_URL}/member_create
 
 
 echo "Creating test Data Request:"
 
 curl -LsH "Authorization: ${API_KEY}" \
-    --data "title=Test Request&description=This is an example&organization_id=${TEST_ORG_ID}" \
+    --data '{"title": "Test Request", "description": "This is an example", "organization_id": "'"${TEST_ORG_ID}"'"}' \
     ${CKAN_ACTION_URL}/create_datarequest
 
 echo "Creating closed Data Request:"
@@ -139,8 +137,8 @@ Closed_DR=$( \
 
 echo $Closed_DR
 
-# # Get the ID of that newly created Data Request
-CLOSE_DR_ID=$(echo $Closed_DR | tr -d '\n' | sed -r 's/^(.*)}, "id": "([a-z0-9\-]*)",(.*)/\2/')
+# Get the ID of that newly created Data Request
+CLOSE_DR_ID=$(echo $Closed_DR | $PYTHON $APP_DIR/scripts/extract-id.py)
 echo $CLOSE_DR_ID
 
 echo "Closing Data Request:"
@@ -173,6 +171,4 @@ curl -LsH "Authorization: ${API_KEY}" \
 
 ckan_cli search-index rebuild
 
-if [ "$VENV_DIR" != "" ]; then
-  deactivate
-fi
+. ${APP_DIR}/scripts/deactivate

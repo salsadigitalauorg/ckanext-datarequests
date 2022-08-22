@@ -626,10 +626,17 @@ class UIControllerTest(unittest.TestCase):
 
         self.assertEquals(expected_facet_titles, controller.c.facet_titles)
 
-        # Check that the render functions has been called with the suitable parameters
-        expected_user = controller.c.user_dict if hasattr(controller.c, 'user_dict') else None
+        # Check that the render function has been called with the suitable parameters
+        expected_user = controller.c.user_dict if user else None
+        controller.tk.render.assert_called_once()
         self.assertEquals(controller.tk.render.return_value, result)
-        controller.tk.render.assert_called_once_with(expected_render_page, extra_vars={'user_dict': expected_user, 'group_type': 'organization'})
+        func_name, args, kwargs = controller.tk.render.mock_calls[0]
+        assert args[0] == expected_render_page
+        assert 'extra_vars' in kwargs
+        extra_vars = kwargs['extra_vars']
+        assert extra_vars['user'] == expected_user
+        assert extra_vars['user_dict'] == expected_user
+        assert extra_vars['group_type'] == 'organization'
 
     ######################################################################
     ############################### DELETE ###############################
