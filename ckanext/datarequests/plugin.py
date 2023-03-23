@@ -18,9 +18,9 @@
 # along with CKAN Data Requests Extension. If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import six
 import sys
 
+from ckan.lib.navl.validators import unicode_safe
 import ckan.plugins as p
 import ckan.plugins.toolkit as tk
 
@@ -124,7 +124,7 @@ class DataRequestsPlugin(MixinPlugin, p.SingletonPlugin):
             ignore_missing = tk.get_validator('ignore_missing')
             schema.update({
                 # This is a custom configuration option
-                'ckan.datarequests.closing_circumstances': [ignore_missing, six.text_type],
+                'ckan.datarequests.closing_circumstances': [ignore_missing, unicode_safe],
             })
         return schema
 
