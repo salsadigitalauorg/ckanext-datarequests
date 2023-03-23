@@ -1,11 +1,23 @@
 {% ckan_extends %}
 
+{% if h.is_ckan_29() %}
+  {% set dataset_search_route = 'dataset.search' %}
+  {% set org_index_route = 'organization.index' %}
+  {% set group_index_route = 'group.index' %}
+  {% set about_route = 'home.about' %}
+{% else %}
+  {% set dataset_search_route = 'search' %}
+  {% set org_index_route = 'organization_index' %}
+  {% set group_index_route = 'group_index' %}
+  {% set about_route = 'about' %}
+{% endif %}
+
 {% block header_site_navigation_tabs %}
   {{ h.build_nav_main(
-    ('search', _('Datasets')),
-    ('organizations_index', _('Organizations')),
-    ('group_index', _('Groups')),
+    (dataset_search_route, _('Datasets')),
+    (org_index_route, _('Organizations')),
+    (group_index_route, _('Groups')),
     ('datarequest.index', _('Data Requests') + h.get_open_datarequests_badge()),
-    ('about', _('About'))
+    (about_route, _('About'))
   ) }}
 {% endblock %}
