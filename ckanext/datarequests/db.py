@@ -194,7 +194,8 @@ def update_db(model):
     A place to make any datarequest table updates via SQL commands
     This is required because adding new columns to sqlalchemy metadata will not get created if the table already exists
     '''
-    meta = MetaData(bind=model.Session.get_bind(), reflect=True)
+    meta = MetaData()
+    meta.reflect(model.Session.get_bind())
 
     # Check to see if columns exists and create them if they do not exists
     if closing_circumstances_enabled:
