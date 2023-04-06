@@ -15,7 +15,7 @@ sed -i -e "s/##//" docker-compose.yml
 ahoy pull
 
 PYTHON=python
-if [ "$CKAN_VERSION" = "2.8" ] || [ "$CKAN_VERSION" = "2.9-py2" ]; then
+if [ "$CKAN_VERSION" = "2.9-py2" ]; then
     PYTHON_VERSION=py2
 else
     PYTHON_VERSION=py3
