@@ -151,23 +151,11 @@ curl -LsH "Authorization: ${API_KEY}" \
 # END.
 #
 
-# Use CKAN's built-in commands for creating some test datasets...
-ckan_cli create-test-data basic
-
-# Datasets need to be assigned to an organisation
-
-echo "Assigning test Datasets to Organisation open-data-administration-data-requests..."
-
+# Creating basic test data which has datasets with resources
 curl -LsH "Authorization: ${API_KEY}" \
-    --data "id=annakarenina&owner_org=${DR_ORG_ID}" \
-    ${CKAN_ACTION_URL}/package_patch
-
-curl -LsH "Authorization: ${API_KEY}" \
-    --data "id=warandpeace&owner_org=${DR_ORG_ID}" \
-    ${CKAN_ACTION_URL}/package_patch
-##
-# END.
-#
+    --data '{"name": "warandpeace", "title": "A Wonderful Story",
+"author_email": "admin@localhost", "license_id": "other-open", "notes": "test"}' \
+    ${CKAN_ACTION_URL}/package_create
 
 ckan_cli search-index rebuild
 
