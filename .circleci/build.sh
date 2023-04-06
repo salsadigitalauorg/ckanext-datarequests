@@ -3,6 +3,7 @@
 # Build site in CI.
 #
 set -e
+set -x
 
 # Process Docker Compose configuration. This is used to avoid multiple
 # docker-compose.yml files.
