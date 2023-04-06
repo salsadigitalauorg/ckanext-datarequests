@@ -28,10 +28,7 @@ from . import auth, actions, common, constants, helpers
 
 from functools import partial
 
-if helpers.is_ckan_29():
-    from .plugin_mixins.flask_plugin import MixinPlugin
-else:
-    from .plugin_mixins.pylons_plugin import MixinPlugin
+from .plugin_mixins.flask_plugin import MixinPlugin
 
 
 class DataRequestsPlugin(MixinPlugin, p.SingletonPlugin):
