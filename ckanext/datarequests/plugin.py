@@ -18,9 +18,9 @@
 # along with CKAN Data Requests Extension. If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import six
 import sys
 
+from ckan.lib.navl.validators import unicode_safe
 import ckan.plugins as p
 import ckan.plugins.toolkit as tk
 
@@ -28,10 +28,7 @@ from . import auth, actions, common, constants, helpers
 
 from functools import partial
 
-if helpers.is_ckan_29():
-    from .plugin_mixins.flask_plugin import MixinPlugin
-else:
-    from .plugin_mixins.pylons_plugin import MixinPlugin
+from .plugin_mixins.flask_plugin import MixinPlugin
 
 
 class DataRequestsPlugin(MixinPlugin, p.SingletonPlugin):
@@ -124,7 +121,7 @@ class DataRequestsPlugin(MixinPlugin, p.SingletonPlugin):
             ignore_missing = tk.get_validator('ignore_missing')
             schema.update({
                 # This is a custom configuration option
-                'ckan.datarequests.closing_circumstances': [ignore_missing, six.text_type],
+                'ckan.datarequests.closing_circumstances': [ignore_missing, unicode_safe],
             })
         return schema
 
