@@ -206,11 +206,7 @@ def create_datarequest(context, data_dict):
     :rtype: dict
     '''
 
-    model = context['model']
     session = context['session']
-
-    # Init the data base
-    db.init_db(model)
 
     # Check access
     tk.check_access(constants.CREATE_DATAREQUEST, context, data_dict)
@@ -255,14 +251,10 @@ def show_datarequest(context, data_dict):
     :rtype: dict
     '''
 
-    model = context['model']
     datarequest_id = data_dict.get('id', '')
 
     if not datarequest_id:
         raise tk.ValidationError(tk._('Data Request ID has not been included'))
-
-    # Init the data base
-    db.init_db(model)
 
     # Check access
     tk.check_access(constants.SHOW_DATAREQUEST, context, data_dict)
@@ -307,15 +299,11 @@ def update_datarequest(context, data_dict):
     :rtype: dict
     '''
 
-    model = context['model']
     session = context['session']
     datarequest_id = data_dict.get('id', '')
 
     if not datarequest_id:
         raise tk.ValidationError(tk._('Data Request ID has not been included'))
-
-    # Init the data base
-    db.init_db(model)
 
     # Check access
     tk.check_access(constants.UPDATE_DATAREQUEST, context, data_dict)
@@ -384,12 +372,8 @@ def list_datarequests(context, data_dict):
     :rtype: dict
     '''
 
-    model = context['model']
     organization_show = tk.get_action('organization_show')
     user_show = tk.get_action('user_show')
-
-    # Init the data base
-    db.init_db(model)
 
     # Check access
     tk.check_access(constants.LIST_DATAREQUESTS, context, data_dict)
@@ -498,16 +482,12 @@ def delete_datarequest(context, data_dict):
     :rtype: dict
     '''
 
-    model = context['model']
     session = context['session']
     datarequest_id = data_dict.get('id', '')
 
     # Check id
     if not datarequest_id:
         raise tk.ValidationError(tk._('Data Request ID has not been included'))
-
-    # Init the data base
-    db.init_db(model)
 
     # Check access
     tk.check_access(constants.DELETE_DATAREQUEST, context, data_dict)
@@ -544,16 +524,12 @@ def close_datarequest(context, data_dict):
 
     '''
 
-    model = context['model']
     session = context['session']
     datarequest_id = data_dict.get('id', '')
 
     # Check id
     if not datarequest_id:
         raise tk.ValidationError(tk._('Data Request ID has not been included'))
-
-    # Init the data base
-    db.init_db(model)
 
     # Check access
     tk.check_access(constants.CLOSE_DATAREQUEST, context, data_dict)
@@ -607,16 +583,12 @@ def comment_datarequest(context, data_dict):
 
     '''
 
-    model = context['model']
     session = context['session']
     datarequest_id = data_dict.get('datarequest_id', '')
 
     # Check id
     if not datarequest_id:
         raise tk.ValidationError([tk._('Data Request ID has not been included')])
-
-    # Init the data base
-    db.init_db(model)
 
     # Check access
     tk.check_access(constants.COMMENT_DATAREQUEST, context, data_dict)
@@ -654,15 +626,11 @@ def show_datarequest_comment(context, data_dict):
     :rtype: dict
     '''
 
-    model = context['model']
     comment_id = data_dict.get('id', '')
 
     # Check id
     if not comment_id:
         raise tk.ValidationError([tk._('Comment ID has not been included')])
-
-    # Init the data base
-    db.init_db(model)
 
     # Check access
     tk.check_access(constants.SHOW_DATAREQUEST_COMMENT, context, data_dict)
@@ -700,15 +668,11 @@ def list_datarequest_comments(context, data_dict):
     :rtype: list
     '''
 
-    model = context['model']
     datarequest_id = data_dict.get('datarequest_id', '')
 
     # Check id
     if not datarequest_id:
         raise tk.ValidationError(tk._('Data Request ID has not been included'))
-
-    # Init the data base
-    db.init_db(model)
 
     # Sort. By default, comments are returned in the order they are created
     # This is something new in version 0.3.0. In previous versions, comments
@@ -747,15 +711,11 @@ def update_datarequest_comment(context, data_dict):
     :rtype: dict
     '''
 
-    model = context['model']
     session = context['session']
     comment_id = data_dict.get('id', '')
 
     if not comment_id:
         raise tk.ValidationError([tk._('Comment ID has not been included')])
-
-    # Init the data base
-    db.init_db(model)
 
     # Check access
     tk.check_access(constants.UPDATE_DATAREQUEST_COMMENT, context, data_dict)
@@ -793,15 +753,11 @@ def delete_datarequest_comment(context, data_dict):
     :rtype: dict
     '''
 
-    model = context['model']
     session = context['session']
     comment_id = data_dict.get('id', '')
 
     if not comment_id:
         raise tk.ValidationError([tk._('Comment ID has not been included')])
-
-    # Init the data base
-    db.init_db(model)
 
     # Check access
     tk.check_access(constants.DELETE_DATAREQUEST_COMMENT, context, data_dict)
@@ -835,15 +791,11 @@ def follow_datarequest(context, data_dict):
     :rtype: bool
     '''
 
-    model = context['model']
     session = context['session']
     datarequest_id = data_dict.get('id', '')
 
     if not datarequest_id:
         raise tk.ValidationError([tk._('Data Request ID has not been included')])
-
-    # Init the data base
-    db.init_db(model)
 
     # Check access
     tk.check_access(constants.FOLLOW_DATAREQUEST, context, data_dict)
@@ -887,15 +839,11 @@ def unfollow_datarequest(context, data_dict):
     :rtype: bool
     '''
 
-    model = context['model']
     session = context['session']
     datarequest_id = data_dict.get('id', '')
 
     if not datarequest_id:
         raise tk.ValidationError([tk._('Data Request ID has not been included')])
-
-    # Init the data base
-    db.init_db(model)
 
     # Check access
     tk.check_access(constants.UNFOLLOW_DATAREQUEST, context, data_dict)

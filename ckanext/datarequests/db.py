@@ -20,180 +20,171 @@
 import sqlalchemy as sa
 import uuid
 import logging
-import ckan.plugins.toolkit as tk
+
+from ckan import model
 from ckanext.datarequests import constants
 
 from sqlalchemy import func, MetaData, DDL
 from sqlalchemy.sql.expression import or_
 
+from . import common
+
 log = logging.getLogger(__name__)
-DataRequest = None
-Comment = None
-DataRequestFollower = None
 
 
 def uuid4():
     return str(uuid.uuid4())
 
 
-def init_db(model):
+class DataRequest(model.DomainObject):
 
-    global DataRequest
-    global Comment
-    global DataRequestFollower
-    global closing_circumstances_enabled
-    closing_circumstances_enabled = tk.h.closing_circumstances_enabled
+    @classmethod
+    def get(cls, **kw):
+        '''Finds all the instances required.'''
+        query = model.Session.query(cls).autoflush(False)
+        return query.filter_by(**kw).all()
 
-    if DataRequest is None:
+    @classmethod
+    def datarequest_exists(cls, title):
+        '''Returns true if there is a Data Request with the same title (case insensitive)'''
+        query = model.Session.query(cls).autoflush(False)
+        return query.filter(func.lower(cls.title) == func.lower(title)).first() is not None
 
-        class _DataRequest(model.DomainObject):
+    @classmethod
+    def get_ordered_by_date(cls, organization_id=None, user_id=None, closed=None, q=None, desc=False):
+        '''Personalized query'''
+        query = model.Session.query(cls).autoflush(False)
 
-            @classmethod
-            def get(cls, **kw):
-                '''Finds all the instances required.'''
-                query = model.Session.query(cls).autoflush(False)
-                return query.filter_by(**kw).all()
+        params = {}
 
-            @classmethod
-            def datarequest_exists(cls, title):
-                '''Returns true if there is a Data Request with the same title (case insensitive)'''
-                query = model.Session.query(cls).autoflush(False)
-                return query.filter(func.lower(cls.title) == func.lower(title)).first() is not None
+        if organization_id is not None:
+            params['organization_id'] = organization_id
 
-            @classmethod
-            def get_ordered_by_date(cls, organization_id=None, user_id=None, closed=None, q=None, desc=False):
-                '''Personalized query'''
-                query = model.Session.query(cls).autoflush(False)
+        if user_id is not None:
+            params['user_id'] = user_id
 
-                params = {}
+        if closed is not None:
+            params['closed'] = closed
 
-                if organization_id is not None:
-                    params['organization_id'] = organization_id
+        if q is not None:
+            search_expr = '%{0}%'.format(q)
+            query = query.filter(or_(cls.title.ilike(search_expr), cls.description.ilike(search_expr)))
 
-                if user_id is not None:
-                    params['user_id'] = user_id
+        order_by_filter = cls.open_time.desc() if desc else cls.open_time.asc()
 
-                if closed is not None:
-                    params['closed'] = closed
+        return query.filter_by(**params).order_by(order_by_filter).all()
 
-                if q is not None:
-                    search_expr = '%{0}%'.format(q)
-                    query = query.filter(or_(cls.title.ilike(search_expr), cls.description.ilike(search_expr)))
-
-                order_by_filter = cls.open_time.desc() if desc else cls.open_time.asc()
-
-                return query.filter_by(**params).order_by(order_by_filter).all()
-
-            @classmethod
-            def get_open_datarequests_number(cls):
-                '''Returns the number of data requests that are open'''
-                return model.Session.query(func.count(cls.id)).filter_by(closed=False).scalar()
-
-        DataRequest = _DataRequest
-
-        # FIXME: References to the other tables...
-        datarequests_table = sa.Table('datarequests', model.meta.metadata,
-                                      sa.Column('user_id', sa.types.UnicodeText, primary_key=False, default=u''),
-                                      sa.Column('id', sa.types.UnicodeText, primary_key=True, default=uuid4),
-                                      sa.Column('title', sa.types.Unicode(constants.NAME_MAX_LENGTH), primary_key=True, default=u''),
-                                      sa.Column('description', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
-                                      sa.Column('organization_id', sa.types.UnicodeText, primary_key=False, default=None),
-                                      sa.Column('open_time', sa.types.DateTime, primary_key=False, default=None),
-                                      sa.Column('accepted_dataset_id', sa.types.UnicodeText, primary_key=False, default=None),
-                                      sa.Column('close_time', sa.types.DateTime, primary_key=False, default=None),
-                                      sa.Column('closed', sa.types.Boolean, primary_key=False, default=False),
-                                      sa.Column('close_circumstance', sa.types.Unicode(constants.CLOSE_CIRCUMSTANCE_MAX_LENGTH), primary_key=False, default=u'')
-                                      if closing_circumstances_enabled else None,
-                                      sa.Column('approx_publishing_date', sa.types.DateTime, primary_key=False, default=None)
-                                      if closing_circumstances_enabled else None,
-                                      extend_existing=True,
-                                      )
-
-        # Create the table only if it does not exist
-        datarequests_table.create(checkfirst=True)
-
-        model.meta.mapper(DataRequest, datarequests_table)
-
-        update_db(model)
-
-    if Comment is None:
-        class _Comment(model.DomainObject):
-
-            @classmethod
-            def get(cls, **kw):
-                '''Finds all the instances required.'''
-                query = model.Session.query(cls).autoflush(False)
-                return query.filter_by(**kw).all()
-
-            @classmethod
-            def get_ordered_by_date(cls, datarequest_id, desc=False):
-                '''Personalized query'''
-                query = model.Session.query(cls).autoflush(False)
-                order_by_filter = cls.time.desc() if desc else cls.time.asc()
-                return query.filter_by(datarequest_id=datarequest_id).order_by(order_by_filter).all()
-
-            @classmethod
-            def get_comment_datarequests_number(cls, **kw):
-                '''
-                Returned the number of comments of a data request
-                '''
-                return model.Session.query(func.count(cls.id)).filter_by(**kw).scalar()
-
-        Comment = _Comment
-
-        # FIXME: References to the other tables...
-        comments_table = sa.Table('datarequests_comments', model.meta.metadata,
-                                  sa.Column('id', sa.types.UnicodeText, primary_key=True, default=uuid4),
-                                  sa.Column('user_id', sa.types.UnicodeText, primary_key=False, default=u''),
-                                  sa.Column('datarequest_id', sa.types.UnicodeText, primary_key=True, default=uuid4),
-                                  sa.Column('time', sa.types.DateTime, primary_key=True, default=u''),
-                                  sa.Column('comment', sa.types.Unicode(constants.COMMENT_MAX_LENGTH), primary_key=False, default=u''),
-                                  extend_existing=True
-                                  )
-
-        # Create the table only if it does not exist
-        comments_table.create(checkfirst=True)
-
-        model.meta.mapper(Comment, comments_table,)
-
-    if DataRequestFollower is None:
-        class _DataRequestFollower(model.DomainObject):
-
-            @classmethod
-            def get(cls, **kw):
-                '''Finds all the instances required.'''
-                query = model.Session.query(cls).autoflush(False)
-                return query.filter_by(**kw).all()
-
-            @classmethod
-            def get_datarequest_followers_number(cls, **kw):
-                '''
-                Returned the number of followers of a data request
-                '''
-                return model.Session.query(func.count(cls.id)).filter_by(**kw).scalar()
-
-        DataRequestFollower = _DataRequestFollower
-
-        # FIXME: References to the other tables...
-        followers_table = sa.Table('datarequests_followers', model.meta.metadata,
-                                   sa.Column('id', sa.types.UnicodeText, primary_key=True, default=uuid4),
-                                   sa.Column('user_id', sa.types.UnicodeText, primary_key=False, default=u''),
-                                   sa.Column('datarequest_id', sa.types.UnicodeText, primary_key=True, default=uuid4),
-                                   sa.Column('time', sa.types.DateTime, primary_key=True, default=u''),
-                                   extend_existing=True
-                                   )
-
-        # Create the table only if it does not exist
-        followers_table.create(checkfirst=True)
-
-        model.meta.mapper(DataRequestFollower, followers_table,)
+    @classmethod
+    def get_open_datarequests_number(cls):
+        '''Returns the number of data requests that are open'''
+        return model.Session.query(func.count(cls.id)).filter_by(closed=False).scalar()
 
 
-def update_db(model):
+class Comment(model.DomainObject):
+
+    @classmethod
+    def get(cls, **kw):
+        '''Finds all the instances required.'''
+        query = model.Session.query(cls).autoflush(False)
+        return query.filter_by(**kw).all()
+
+    @classmethod
+    def get_ordered_by_date(cls, datarequest_id, desc=False):
+        '''Personalized query'''
+        query = model.Session.query(cls).autoflush(False)
+        order_by_filter = cls.time.desc() if desc else cls.time.asc()
+        return query.filter_by(datarequest_id=datarequest_id).order_by(order_by_filter).all()
+
+    @classmethod
+    def get_comment_datarequests_number(cls, **kw):
+        '''
+        Returned the number of comments of a data request
+        '''
+        return model.Session.query(func.count(cls.id)).filter_by(**kw).scalar()
+
+
+class DataRequestFollower(model.DomainObject):
+
+    @classmethod
+    def get(cls, **kw):
+        '''Finds all the instances required.'''
+        query = model.Session.query(cls).autoflush(False)
+        return query.filter_by(**kw).all()
+
+    @classmethod
+    def get_datarequest_followers_number(cls, **kw):
+        '''
+        Returned the number of followers of a data request
+        '''
+        return model.Session.query(func.count(cls.id)).filter_by(**kw).scalar()
+
+
+closing_circumstances_enabled = common.get_config_bool_value('ckan.datarequests.enable_closing_circumstances', False)
+
+# FIXME: References to the other tables...
+datarequests_table = sa.Table('datarequests', model.meta.metadata,
+                              sa.Column('user_id', sa.types.UnicodeText, primary_key=False, default=u''),
+                              sa.Column('id', sa.types.UnicodeText, primary_key=True, default=uuid4),
+                              sa.Column('title', sa.types.Unicode(constants.NAME_MAX_LENGTH), primary_key=True, default=u''),
+                              sa.Column('description', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
+                              sa.Column('organization_id', sa.types.UnicodeText, primary_key=False, default=None),
+                              sa.Column('open_time', sa.types.DateTime, primary_key=False, default=None),
+                              sa.Column('accepted_dataset_id', sa.types.UnicodeText, primary_key=False, default=None),
+                              sa.Column('close_time', sa.types.DateTime, primary_key=False, default=None),
+                              sa.Column('closed', sa.types.Boolean, primary_key=False, default=False),
+                              sa.Column('close_circumstance', sa.types.Unicode(constants.CLOSE_CIRCUMSTANCE_MAX_LENGTH), primary_key=False, default=u'')
+                              if closing_circumstances_enabled else None,
+                              sa.Column('approx_publishing_date', sa.types.DateTime, primary_key=False, default=None)
+                              if closing_circumstances_enabled else None,
+                              extend_existing=True,
+                              )
+
+model.meta.mapper(DataRequest, datarequests_table)
+
+# FIXME: References to the other tables...
+comments_table = sa.Table('datarequests_comments', model.meta.metadata,
+                          sa.Column('id', sa.types.UnicodeText, primary_key=True, default=uuid4),
+                          sa.Column('user_id', sa.types.UnicodeText, primary_key=False, default=u''),
+                          sa.Column('datarequest_id', sa.types.UnicodeText, primary_key=True, default=uuid4),
+                          sa.Column('time', sa.types.DateTime, primary_key=True, default=u''),
+                          sa.Column('comment', sa.types.Unicode(constants.COMMENT_MAX_LENGTH), primary_key=False, default=u''),
+                          extend_existing=True
+                          )
+
+model.meta.mapper(Comment, comments_table,)
+
+# FIXME: References to the other tables...
+followers_table = sa.Table('datarequests_followers', model.meta.metadata,
+                           sa.Column('id', sa.types.UnicodeText, primary_key=True, default=uuid4),
+                           sa.Column('user_id', sa.types.UnicodeText, primary_key=False, default=u''),
+                           sa.Column('datarequest_id', sa.types.UnicodeText, primary_key=True, default=uuid4),
+                           sa.Column('time', sa.types.DateTime, primary_key=True, default=u''),
+                           extend_existing=True
+                           )
+
+model.meta.mapper(DataRequestFollower, followers_table,)
+
+
+def init_db():
+
+    # Create the table only if it does not exist
+    datarequests_table.create(checkfirst=True)
+
+    update_db()
+
+    # Create the table only if it does not exist
+    comments_table.create(checkfirst=True)
+
+    # Create the table only if it does not exist
+    followers_table.create(checkfirst=True)
+
+
+def update_db():
     '''
     A place to make any datarequest table updates via SQL commands
     This is required because adding new columns to sqlalchemy metadata will not get created if the table already exists
     '''
+
     meta = MetaData()
     meta.reflect(model.Session.get_bind())
 
