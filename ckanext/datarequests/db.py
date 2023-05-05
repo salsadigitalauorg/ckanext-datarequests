@@ -165,7 +165,7 @@ followers_table = sa.Table('datarequests_followers', model.meta.metadata,
 model.meta.mapper(DataRequestFollower, followers_table,)
 
 
-def init_db():
+def init_db(deprecated_model=None):
 
     # Create the table only if it does not exist
     datarequests_table.create(checkfirst=True)
@@ -179,7 +179,7 @@ def init_db():
     followers_table.create(checkfirst=True)
 
 
-def update_db():
+def update_db(deprecated_model=None):
     '''
     A place to make any datarequest table updates via SQL commands
     This is required because adding new columns to sqlalchemy metadata will not get created if the table already exists
