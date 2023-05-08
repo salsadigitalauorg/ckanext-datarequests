@@ -29,9 +29,6 @@ class HelpersTest(unittest.TestCase):
         self.tk_patch = patch('ckanext.datarequests.helpers.tk')
         self.tk_patch.start()
 
-        self.model_patch = patch('ckanext.datarequests.helpers.model')
-        self.model_patch.start()
-
         self.db_patch = patch('ckanext.datarequests.helpers.db')
         self.db_patch.start()
 
@@ -41,7 +38,6 @@ class HelpersTest(unittest.TestCase):
 
     def tearDown(self):
         self.tk_patch.stop()
-        self.model_patch.stop()
         self.db_patch.stop()
         helpers.c = self._c
 
@@ -55,7 +51,6 @@ class HelpersTest(unittest.TestCase):
         result = helpers.get_comments_number(datarequest_id)
 
         # Assertions
-        helpers.db.init_db.assert_called_once_with(helpers.model)
         helpers.db.Comment.get_comment_datarequests_number.assert_called_once_with(datarequest_id=datarequest_id)
         self.assertEquals(result, n_comments)
 
@@ -69,7 +64,6 @@ class HelpersTest(unittest.TestCase):
         result = helpers.get_comments_badge(datarequest_id)
 
         # Assertions
-        helpers.db.init_db.assert_called_once_with(helpers.model)
         helpers.db.Comment.get_comment_datarequests_number.assert_called_once_with(datarequest_id=datarequest_id)
         self.assertEquals(result, helpers.tk.render_snippet.return_value)
         helpers.tk.render_snippet.assert_called_once_with('datarequests/snippets/badge.html',
@@ -84,7 +78,6 @@ class HelpersTest(unittest.TestCase):
         result = helpers.get_open_datarequests_number()
 
         # Assertions
-        helpers.db.init_db.assert_called_once_with(helpers.model)
         helpers.db.DataRequest.get_open_datarequests_number.assert_called_once_with()
         self.assertEquals(result, n_datarequests)
 
@@ -97,7 +90,6 @@ class HelpersTest(unittest.TestCase):
         result = helpers.get_open_datarequests_badge(True)
 
         # Assertions
-        helpers.db.init_db.assert_called_once_with(helpers.model)
         helpers.db.DataRequest.get_open_datarequests_number.assert_called_once_with()
         self.assertEquals(result, helpers.tk.render_snippet.return_value)
         helpers.tk.render_snippet.assert_called_once_with('datarequests/snippets/badge.html',

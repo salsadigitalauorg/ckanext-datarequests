@@ -17,8 +17,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with CKAN Data Requests Extension. If not, see <http://www.gnu.org/licenses/>.
 
-from ckan.common import config
 import ckan.lib.helpers as h
+from ckan.plugins.toolkit import config
 
 
 def get_config_bool_value(config_name, default_value=False):

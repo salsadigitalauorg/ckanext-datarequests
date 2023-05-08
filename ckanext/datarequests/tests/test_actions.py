@@ -104,7 +104,6 @@ class ActionsTest(unittest.TestCase):
             function(self.context, request_data)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(action, self.context, request_data)
         self.assertEquals(0, actions.db.DataRequest.get.call_count)
 
@@ -117,7 +116,6 @@ class ActionsTest(unittest.TestCase):
             function(self.context, request_data)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(action, self.context, request_data)
         actions.db.DataRequest.get.assert_called_once_with(id=request_data['id'])
 
@@ -127,7 +125,6 @@ class ActionsTest(unittest.TestCase):
             function(self.context, {})
 
         # Assertions
-        self.assertEquals(0, actions.db.init_db.call_count)
         self.assertEquals(0, actions.tk.check_access.call_count)
         self.assertEquals(0, actions.db.DataRequest.get.call_count)
 
@@ -140,7 +137,6 @@ class ActionsTest(unittest.TestCase):
             function(self.context, request_data)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(action, self.context, request_data)
         actions.db.Comment.get.assert_called_once_with(id=request_data['id'])
 
@@ -307,7 +303,6 @@ class ActionsTest(unittest.TestCase):
             actions.create_datarequest(self.context, test_data.create_request_data)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(constants.CREATE_DATAREQUEST, self.context, test_data.create_request_data)
         self.assertEquals(0, actions.validator.validate_datarequest.call_count)
         self.assertEquals(0, actions.db.DataRequest.call_count)
@@ -323,7 +318,6 @@ class ActionsTest(unittest.TestCase):
             actions.create_datarequest(self.context, test_data.create_request_data)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(constants.CREATE_DATAREQUEST, self.context, test_data.create_request_data)
         actions.validator.validate_datarequest.assert_called_once_with(self.context, test_data.create_request_data)
         self.assertEquals(0, actions.db.DataRequest.call_count)
@@ -348,7 +342,6 @@ class ActionsTest(unittest.TestCase):
         # Assertions
         datarequest = actions.db.DataRequest.return_value
 
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(constants.CREATE_DATAREQUEST, self.context, test_data.create_request_data)
         actions.validator.validate_datarequest.assert_called_once_with(self.context, test_data.create_request_data)
         actions.db.DataRequest.assert_called_once()
@@ -394,7 +387,6 @@ class ActionsTest(unittest.TestCase):
         result = actions.show_datarequest(self.context, test_data.show_request_data)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(constants.SHOW_DATAREQUEST, self.context, test_data.show_request_data)
         actions.db.DataRequest.get.assert_called_once_with(id=test_data.show_request_data['id'])
 
@@ -479,7 +471,6 @@ class ActionsTest(unittest.TestCase):
         result = actions.update_datarequest(self.context, test_data.update_request_data)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(constants.UPDATE_DATAREQUEST, self.context, test_data.update_request_data)
         actions.db.DataRequest.get.assert_called_once_with(id=test_data.update_request_data['id'])
         expected_context = self.context.copy()
@@ -550,7 +541,6 @@ class ActionsTest(unittest.TestCase):
         response = actions.list_datarequests(self.context, content)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(constants.LIST_DATAREQUESTS, self.context, content)
         actions.db.DataRequest.get_ordered_by_date.assert_called_once_with(**expected_ddbb_params)
 
@@ -642,7 +632,6 @@ class ActionsTest(unittest.TestCase):
         result = actions.delete_datarequest(self.context, test_data.delete_request_data)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(constants.DELETE_DATAREQUEST, self.context, expected_data_dict)
         self.context['session'].delete.assert_called_once_with(datarequest)
         self.context['session'].commit.assert_called_once_with()
@@ -704,7 +693,6 @@ class ActionsTest(unittest.TestCase):
         result = actions.close_datarequest(self.context, data)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(constants.CLOSE_DATAREQUEST, self.context, expected_data_dict)
         self.context['session'].add.assert_called_once_with(datarequest)
         self.context['session'].commit.assert_called_once_with()
@@ -747,7 +735,6 @@ class ActionsTest(unittest.TestCase):
             function(self.context, request_data)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(check_access, self.context, request_data)
         actions.validator.validate_comment.assert_called_once_with(self.context, request_data)
         self.assertEquals(0, actions.db.DataRequest.call_count)
@@ -773,7 +760,6 @@ class ActionsTest(unittest.TestCase):
         # Assertions
         comment = actions.db.Comment.return_value
 
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access(constants.COMMENT_DATAREQUEST, self.context, test_data.comment_request_data)
         actions.validator.validate_comment.assert_called_once_with(self.context, test_data.comment_request_data)
         actions.db.Comment.assert_called_once()
@@ -901,7 +887,6 @@ class ActionsTest(unittest.TestCase):
         result = actions.update_datarequest_comment(self.context, test_data.comment_update_request_data)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(constants.UPDATE_DATAREQUEST_COMMENT, self.context, test_data.comment_update_request_data)
         actions.db.Comment.get.assert_called_once_with(id=test_data.comment_update_request_data['id'])
         actions.validator.validate_comment.assert_called_once_with(self.context, test_data.comment_update_request_data)
@@ -943,7 +928,6 @@ class ActionsTest(unittest.TestCase):
         result = actions.delete_datarequest_comment(self.context, test_data.comment_delete_request_data)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(constants.DELETE_DATAREQUEST_COMMENT, self.context, expected_data_dict)
         self.context['session'].delete.assert_called_once_with(comment)
         self.context['session'].commit.assert_called_once_with()
@@ -987,7 +971,6 @@ class ActionsTest(unittest.TestCase):
         # Assertions
         follower = actions.db.DataRequestFollower.return_value
 
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(constants.FOLLOW_DATAREQUEST, self.context, test_data.follow_data_request_data)
         actions.db.DataRequestFollower.assert_called_once()
 
@@ -1031,7 +1014,6 @@ class ActionsTest(unittest.TestCase):
         result = actions.unfollow_datarequest(self.context, test_data.follow_data_request_data)
 
         # Assertions
-        actions.db.init_db.assert_called_once_with(self.context['model'])
         actions.tk.check_access.assert_called_once_with(constants.UNFOLLOW_DATAREQUEST, self.context, test_data.follow_data_request_data)
 
         self.context['session'].delete.assert_called_once_with(follower)

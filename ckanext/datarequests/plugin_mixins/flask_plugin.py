@@ -3,7 +3,7 @@
 import ckan.plugins as p
 from flask import Blueprint
 
-from ckanext.datarequests import constants
+from ckanext.datarequests import cli, constants
 from ckanext.datarequests.controllers import controller_functions
 
 
@@ -12,6 +12,7 @@ datarequests_bp = Blueprint("datarequest", __name__)
 
 class MixinPlugin(p.SingletonPlugin):
     p.implements(p.IBlueprint)
+    p.implements(p.IClick)
 
     # IBlueprint
 
@@ -102,3 +103,8 @@ class MixinPlugin(p.SingletonPlugin):
             datarequests_bp.add_url_rule(rule[0], endpoint=rule[1], view_func=rule[2], methods=rule[3])
 
         return [datarequests_bp]
+
+    # IClick
+
+    def get_commands(self):
+        return cli.get_commands()
