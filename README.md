@@ -240,6 +240,11 @@ ckan.datarequests.show_datarequests_badge = [true|false]
 ```
 ckan.datarequests.description_required = [True|False]
 ```
+* Update the database schema
+```
+ckan -c <config> datarequests init_db
+ckan -c <config> datarequests update_db
+```
 * Restart your apache2 reserver
 ```
 sudo service apache2 restart

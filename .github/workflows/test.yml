@@ -13,7 +13,7 @@ jobs:
       matrix:
         ckan-version: ["2.10", 2.9, 2.9-py2]
 
-    name: Continuous Integration build on CKAN ${{ matrix.ckan-version }}
+    name: Test on CKAN ${{ matrix.ckan-version }}
     runs-on: ubuntu-latest
     container: drevops/ci-builder
     env:
