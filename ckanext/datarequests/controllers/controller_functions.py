@@ -8,7 +8,7 @@ import six
 from six.moves.urllib.parse import urlencode
 
 from ckan import model
-from ckan.lib import helpers
+from ckan.lib import helpers, captcha
 from ckan.plugins import toolkit as tk
 from ckan.plugins.toolkit import c, h
 
@@ -170,6 +170,7 @@ def _process_post(action, context):
             data_dict['id'] = request_helpers.get_first_post_param('id', '')
 
         try:
+            captcha.check_recaptcha(request)
             result = tk.get_action(action)(context, data_dict)
             return tk.redirect_to(tk.url_for('datarequest.show', id=result['id']))
 
@@ -184,6 +185,16 @@ def _process_post(action, context):
             }
             c.errors = e.error_dict
             c.errors_summary = _get_errors_summary(c.errors)
+        except captcha.CaptchaError:
+            error_msg = _(u'Bad Captcha. Please try again.')
+            h.flash_error(error_msg)
+            # Fill the fields that will display some information in the page
+            c.datarequest = {
+                'id': data_dict.get('id', ''),
+                'title': data_dict.get('title', ''),
+                'description': data_dict.get('description', ''),
+                'organization_id': data_dict.get('organization_id', '')
+            }
 
 
 def new():
@@ -202,6 +213,7 @@ def new():
     except tk.NotAuthorized as e:
         log.warn(e)
         return tk.abort(403, tk._('Unauthorized to create a Data Request'))
+
 
 
 def show(id):
