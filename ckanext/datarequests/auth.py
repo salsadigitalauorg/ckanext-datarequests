@@ -17,13 +17,26 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with CKAN Data Requests Extension. If not, see <http://www.gnu.org/licenses/>.
 
-from ckan.plugins.toolkit import auth_allow_anonymous_access, get_action
+from ckan import authz
+from ckan.plugins.toolkit import asbool, auth_allow_anonymous_access, config, get_action
 
 from . import constants
 
 
 def create_datarequest(context, data_dict):
-    return {'success': True}
+    return {
+        'success': asbool(config.get("ckanext.auth.create_datarequest_if_not_in_organization", "True"))
+        or _is_any_group_member(context)
+    }
+
+
+def _is_any_group_member(context):
+    user_name = context.get('user')
+    if not user_name:
+        user_obj = context.get('auth_user_obj')
+        if user_obj:
+            user_name = user_obj.name
+    return user_name and authz.has_user_permission_for_some_org(user_name, 'read')
 
 
 @auth_allow_anonymous_access

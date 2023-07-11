@@ -8,12 +8,11 @@ import six
 from six.moves.urllib.parse import urlencode
 
 from ckan import model
-from ckan.lib import helpers
+from ckan.lib import helpers, captcha
 from ckan.plugins import toolkit as tk
-from ckan.plugins.toolkit import c, h
+from ckan.plugins.toolkit import c, h, request, _
 
 from ckanext.datarequests import constants, request_helpers
-
 
 _link = re.compile(r'(?:(https?://)|(www\.))(\S+\b/?)([!"#$%&\'()*+,\-./:;<=>?@[\\\]^_`{|}~]*)(\s|$)', re.I)
 
@@ -60,7 +59,6 @@ def _get_context():
 
 
 def _show_index(user_id, organization_id, include_organization_facet, url_func, file_to_render, extra_vars=None):
-
     def pager_url(state=None, sort=None, q=None, page=None):
         params = []
 
@@ -155,7 +153,8 @@ def _show_index(user_id, organization_id, include_organization_facet, url_func, 
 
 
 def index():
-    return _show_index(None, request_helpers.get_first_query_param('organization', ''), True, search_url, 'datarequests/index.html')
+    return _show_index(None, request_helpers.get_first_query_param('organization', ''), True, search_url,
+                       'datarequests/index.html')
 
 
 def _process_post(action, context):
@@ -170,6 +169,7 @@ def _process_post(action, context):
             data_dict['id'] = request_helpers.get_first_post_param('id', '')
 
         try:
+            captcha.check_recaptcha(request)
             result = tk.get_action(action)(context, data_dict)
             return tk.redirect_to(tk.url_for('datarequest.show', id=result['id']))
 
@@ -184,6 +184,16 @@ def _process_post(action, context):
             }
             c.errors = e.error_dict
             c.errors_summary = _get_errors_summary(c.errors)
+        except captcha.CaptchaError:
+            error_msg = _(u'Bad Captcha. Please try again.')
+            h.flash_error(error_msg)
+            # Fill the fields that will display some information in the page
+            c.datarequest = {
+                'id': data_dict.get('id', ''),
+                'title': data_dict.get('title', ''),
+                'description': data_dict.get('description', ''),
+                'organization_id': data_dict.get('organization_id', '')
+            }
 
 
 def new():
@@ -267,7 +277,8 @@ def organization(id):
     context = _get_context()
     c.group_dict = tk.get_action('organization_show')(context, {'id': id})
     url_func = functools.partial(org_datarequest_url, id=id)
-    return _show_index(None, id, False, url_func, 'organization/datarequests.html', extra_vars={'group_dict': c.group_dict})
+    return _show_index(None, id, False, url_func, 'organization/datarequests.html',
+                       extra_vars={'group_dict': c.group_dict})
 
 
 def user(id):
@@ -277,7 +288,8 @@ def user(id):
     except tk.NotAuthorized:
         tk.abort(403, tk._(u'Not authorized to see this page'))
     url_func = functools.partial(user_datarequest_url, id=id)
-    return _show_index(id, request_helpers.get_first_query_param('organization', ''), True, url_func, 'user/datarequests.html',
+    return _show_index(id, request_helpers.get_first_query_param('organization', ''), True, url_func,
+                       'user/datarequests.html',
                        extra_vars={'user': c.user_dict, 'user_dict': c.user_dict})
 
 
@@ -331,15 +343,16 @@ def close(id):
             data_dict['id'] = id
             if h.closing_circumstances_enabled:
                 data_dict['close_circumstance'] = request_helpers.get_first_post_param('close_circumstance', None)
-                data_dict['approx_publishing_date'] = request_helpers.get_first_post_param('approx_publishing_date', None)
+                data_dict['approx_publishing_date'] = request_helpers.get_first_post_param('approx_publishing_date',
+                                                                                           None)
                 data_dict['condition'] = request_helpers.get_first_post_param('condition', None)
 
             tk.get_action(constants.CLOSE_DATAREQUEST)(context, data_dict)
             return tk.redirect_to(tk.url_for('datarequest.show', id=data_dict['id']))
-        else:   # GET
+        else:  # GET
             return _return_page()
 
-    except tk.ValidationError as e:     # Accepted Dataset is not valid
+    except tk.ValidationError as e:  # Accepted Dataset is not valid
         log.warn(e)
         errors_summary = _get_errors_summary(e.error_dict)
         return _return_page(e.error_dict, errors_summary)

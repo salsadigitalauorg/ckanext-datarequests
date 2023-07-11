@@ -25,6 +25,10 @@
     <span class="editor-info-block">{% trans %}You can use <a href="#markdown" title="Markdown quick reference" data-target="popover" data-content="{{ markdown_tooltip }}" data-html="true">Markdown formatting</a> here. You can refer datasets by adding their URL.{% endtrans %}</span>
   </div>
 
+  {% if g.recaptcha_publickey %}
+    {% snippet "user/snippets/recaptcha.html", public_key=g.recaptcha_publickey %}
+  {% endif %}
+
   <div class="comment-form-actions">
     {% if comment_id %}
       <button id="comment-discard-{{ comment_id }}" class="btn btn-danger" name="discard">{{ _('Cancel') }}</button>

@@ -40,6 +40,10 @@ then itself be extended to add/remove blocks of functionality. #}
   </div>
   {% endblock %}
 
+  {% if g.recaptcha_publickey %}
+    {% snippet "user/snippets/recaptcha.html", public_key=g.recaptcha_publickey %}
+  {% endif %}
+
   {% block form_actions %}
     <div class="form-actions">
       {% block delete_button %}
