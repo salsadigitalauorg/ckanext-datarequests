@@ -34,7 +34,7 @@
             {% endif %}
           {% endblock %}
           <div class="divider"/>
-          <span class="date-datarequests">{{ h.time_ago_from_timestamp(datarequest.open_time) }}</span>
+          <span class="date-datarequests">{{ datarequest.user['display_name'] }}, {{ h.time_ago_from_timestamp(datarequest.open_time) }}</span>
         </div>
       {% endblock %}
     </div>
