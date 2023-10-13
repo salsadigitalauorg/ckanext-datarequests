@@ -90,6 +90,7 @@ class DataRequestsPlugin(MixinPlugin, p.SingletonPlugin):
             constants.CLOSE_DATAREQUEST: auth.close_datarequest,
             constants.FOLLOW_DATAREQUEST: auth.follow_datarequest,
             constants.UNFOLLOW_DATAREQUEST: auth.unfollow_datarequest,
+            constants.PURGE_DATAREQUESTS: auth.purge_datarequests,
         }
 
         if self.comments_enabled:
