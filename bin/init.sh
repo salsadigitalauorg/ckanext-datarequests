@@ -10,6 +10,3 @@ ckan_cli db init
 
 # Add data request tables
 ckan_cli datarequests init-db
-
-# Create some base test data
-. $APP_DIR/bin/create-test-data.sh
