@@ -860,3 +860,16 @@ def unfollow_datarequest(context, data_dict):
     session.commit()
 
     return True
+
+
+def purge_datarequests(context, data_dict):
+    """ Delete all data requests associated with the specified account.
+    This is intended for cleanup of spam.
+    """
+    tk.check_access(constants.PURGE_DATAREQUESTS, context, data_dict)
+
+    datarequests_list = tk.get_action(constants.LIST_DATAREQUESTS)(context, data_dict)
+    for target_datarequest in datarequests_list['result']:
+        tk.get_action(constants.DELETE_DATAREQUEST)(context, {'id': target_datarequest['id']})
+
+    return True
