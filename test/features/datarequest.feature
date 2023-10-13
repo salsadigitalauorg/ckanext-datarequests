@@ -90,3 +90,29 @@ Feature: Datarequest
         And I press the element with xpath "//button[contains(@class, 'btn-danger') and contains(string(), 'Close Data Request')]"
         Then I should see an element with xpath "//i[contains(@class, 'icon-lock')]"
         And I should not see an element with xpath "//a[contains(string(), 'Close')]"
+
+    Scenario: Purge all data requests for a user
+        Given "TestOrgEditor" as the persona
+        When I log in
+        And I create a datarequest
+        And I create a datarequest
+        And I create a datarequest
+        And I go to the "test_org_editor" profile page
+        And I press the element with xpath "//ul[contains(@class, 'nav-tabs')]//a[contains(string(), 'Data Requests')]"
+        Then I should see an element with xpath "//a[@title='Delete' and contains(@class, 'btn-danger')]"
+        And I should not see an element with xpath "//a[contains(@class, 'btn-danger-serious')]"
+
+        Given "SysAdmin" as the persona
+        When I log out
+        And I log in
+        And I go to the "test_org_editor" profile page
+        And I press the element with xpath "//ul[contains(@class, 'nav-tabs')]//a[contains(string(), 'Data Requests')]"
+        And I should see an element with xpath "//a[@title='Delete' and contains(@class, 'btn-danger')]"
+        And I should see an element with xpath "//a[contains(@title, 'Purge') and contains(@class, 'btn-danger-serious')]"
+
+        When I press the element with xpath "//a[contains(@title, 'Purge') and contains(@class, 'btn-danger-serious')][0]"
+        Then I should see an element with xpath "//div[contains(@class, 'alert') and contains(string(), 'Deleted') and contains(string(), 'data request(s)')]"
+
+        When I go to the "test_org_editor" profile page
+        And I press the element with xpath "//ul[contains(@class, 'nav-tabs')]//a[contains(string(), 'Data Requests')]"
+        Then I should see "No data requests found"
