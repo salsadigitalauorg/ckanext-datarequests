@@ -474,7 +474,6 @@ def purge(user_id):
         log.warn(e)
         return tk.abort(404, tk._('User %s not found') % user_id)
 
-
     for target_datarequest in datarequests_list['result']:
         tk.get_action(constants.DELETE_DATAREQUEST)(context, {'id': target_datarequest['id']})
 
