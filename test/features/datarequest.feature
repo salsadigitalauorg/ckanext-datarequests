@@ -99,7 +99,7 @@ Feature: Datarequest
         Then I should see an element with xpath "//i[contains(@class, 'icon-lock')]"
         And I should not see an element with xpath "//a[contains(string(), 'Close')]"
 
-    Scenario: Purge all data requests for a user
+    Scenario: Delete all data requests for a user
         Given "TestOrgEditor" as the persona
         When I log in
         And I create a datarequest
@@ -116,9 +116,9 @@ Feature: Datarequest
         And I go to the "test_org_editor" profile page
         And I press the element with xpath "//ul[contains(@class, 'nav-tabs')]//a[contains(string(), 'Data Requests')]"
         And I should see an element with xpath "//a[@title='Delete' and contains(@class, 'btn-danger')]"
-        And I should see an element with xpath "//a[contains(@title, 'Purge') and contains(@class, 'btn-danger-serious')]"
+        And I should see an element with xpath "//a[contains(@title, 'Delete all') and contains(@class, 'btn-danger-serious')]"
 
-        When I press the element with xpath "//a[contains(@title, 'Purge') and contains(@class, 'btn-danger-serious')][0]"
+        When I press the element with xpath "//a[contains(@title, 'Delete all') and contains(@class, 'btn-danger-serious')][0]"
         Then I should see an element with xpath "//div[contains(@class, 'alert') and contains(string(), 'Deleted') and contains(string(), 'data request(s)')]"
 
         When I go to the "test_org_editor" profile page
