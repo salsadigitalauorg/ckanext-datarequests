@@ -23,30 +23,43 @@ import ckan.plugins.toolkit as tk
 from ckanext.datarequests import db, common, constants
 
 
+def profanity_check_enabled():
+    return tk.asbool(tk.config.get('ckan.comments.check_for_profanity', False))
+
+
 def validate_datarequest(context, request_data):
 
     errors = {}
 
-    # Check name
-    if len(request_data['title']) > constants.NAME_MAX_LENGTH:
-        errors[tk._('Title')] = [tk._('Title must be a maximum of %d characters long') % constants.NAME_MAX_LENGTH]
+    # Run profanity check
+    title = request_data['title']
+    description = request_data['description']
+    if profanity_check_enabled() \
+            and (common.profanity_check(title) or common.profanity_check(description)):
+        raise tk.ValidationError({"message": "Request blocked due to profanity."})
 
-    if not request_data['title']:
-        errors[tk._('Title')] = [tk._('Title cannot be empty')]
+    # Check name
+    title_field = tk._('Title')
+    if len(title) > constants.NAME_MAX_LENGTH:
+        errors[title_field] = [tk._('Title must be a maximum of %d characters long') % constants.NAME_MAX_LENGTH]
+
+    if not title:
+        errors[title_field] = [tk._('Title cannot be empty')]
 
     # Title is only checked in the database when it's correct
     avoid_existing_title_check = context['avoid_existing_title_check'] if 'avoid_existing_title_check' in context else False
 
-    if 'Title' not in errors and not avoid_existing_title_check:
-        if db.DataRequest.datarequest_exists(request_data['title']):
-            errors[tk._('Title')] = [tk._('That title is already in use')]
+    if title_field not in errors and not avoid_existing_title_check:
+        if db.DataRequest.datarequest_exists(title):
+            errors[title_field] = [tk._('That title is already in use')]
 
     # Check description
-    if common.get_config_bool_value('ckan.datarequests.description_required', False) and not request_data['description']:
-        errors[tk._('Description')] = [tk._('Description cannot be empty')]
+    description_field = tk._('Description')
+    if common.get_config_bool_value('ckan.datarequests.description_required', False) and not description:
+        errors[description_field] = [tk._('Description cannot be empty')]
 
-    if len(request_data['description']) > constants.DESCRIPTION_MAX_LENGTH:
-        errors[tk._('Description')] = [tk._('Description must be a maximum of %d characters long') % constants.DESCRIPTION_MAX_LENGTH]
+    if len(description) > constants.DESCRIPTION_MAX_LENGTH:
+        errors[description_field] = [tk._('Description must be a maximum of %d characters long') % constants.DESCRIPTION_MAX_LENGTH]
 
     # Check organization
     if request_data['organization_id']:
@@ -100,5 +113,8 @@ def validate_comment(context, request_data):
 
     if len(comment) > constants.COMMENT_MAX_LENGTH:
         raise tk.ValidationError({tk._('Comment'): [tk._('Comments must be a maximum of %d characters long') % constants.COMMENT_MAX_LENGTH]})
+
+    if profanity_check_enabled() and common.profanity_check(comment):
+        raise tk.ValidationError({"message": "Comment blocked due to profanity."})
 
     return datarequest
