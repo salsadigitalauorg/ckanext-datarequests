@@ -31,14 +31,8 @@ def validate_datarequest(context, request_data):
 
     errors = {}
 
-    # Run profanity check
-    title = request_data['title']
-    description = request_data['description']
-    if profanity_check_enabled() \
-            and (common.profanity_check(title) or common.profanity_check(description)):
-        raise tk.ValidationError({"message": "Request blocked due to profanity."})
-
     # Check name
+    title = request_data['title']
     title_field = tk._('Title')
     if len(title) > constants.NAME_MAX_LENGTH:
         errors[title_field] = [tk._('Title must be a maximum of %d characters long') % constants.NAME_MAX_LENGTH]
@@ -54,12 +48,20 @@ def validate_datarequest(context, request_data):
             errors[title_field] = [tk._('That title is already in use')]
 
     # Check description
+    description = request_data['description']
     description_field = tk._('Description')
     if common.get_config_bool_value('ckan.datarequests.description_required', False) and not description:
         errors[description_field] = [tk._('Description cannot be empty')]
 
     if len(description) > constants.DESCRIPTION_MAX_LENGTH:
         errors[description_field] = [tk._('Description must be a maximum of %d characters long') % constants.DESCRIPTION_MAX_LENGTH]
+
+    # Run profanity check
+    if profanity_check_enabled():
+        if title_field not in errors and common.profanity_check(title):
+            errors[title_field] = tk._("Blocked due to profanity")
+        if description_field not in errors and common.profanity_check(description):
+            errors[description_field] = tk._("Blocked due to profanity")
 
     # Check organization
     if request_data['organization_id']:

@@ -27,6 +27,5 @@ Feature: Comments
         When I log in
         And I create a datarequest
         And I go to data request "$last_generated_title" comments
-        Then I should see an element with xpath "//h3[contains(string(), 'Add a comment')]"
-        When I submit a comment with subject "Test subject" and comment "He had sheep, and oxen, and he asses, and menservants, and maidservants, and she asses, and camels."
+        And I submit a comment with subject "Test subject" and comment "He had sheep, and oxen, and he asses, and menservants, and maidservants, and she asses, and camels."
         Then I should see "Comment blocked due to profanity" within 5 seconds
