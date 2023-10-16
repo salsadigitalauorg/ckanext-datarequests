@@ -117,13 +117,18 @@ def validate_comment(context, request_data):
     except Exception:
         raise tk.ValidationError({tk._('Data Request'): [tk._('Data Request not found')]})
 
+    errors = {}
+    comment_field = tk._('Comment')
     if not comment or len(comment) <= 0:
-        raise tk.ValidationError({tk._('Comment'): [tk._('Comments must be a minimum of 1 character long')]})
+        _add_error(errors, comment_field, tk._('Comments must be a minimum of 1 character long'))
 
     if len(comment) > constants.COMMENT_MAX_LENGTH:
-        raise tk.ValidationError({tk._('Comment'): [tk._('Comments must be a maximum of %d characters long') % constants.COMMENT_MAX_LENGTH]})
+        _add_error(errors, comment_field, tk._('Comments must be a maximum of %d characters long') % constants.COMMENT_MAX_LENGTH)
 
     if profanity_check_enabled() and common.profanity_check(comment):
-        raise tk.ValidationError({"message": "Comment blocked due to profanity."})
+        _add_error(errors, comment_field, tk._("Comment blocked due to profanity."))
+
+    if errors:
+        raise tk.ValidationError(errors)
 
     return datarequest
