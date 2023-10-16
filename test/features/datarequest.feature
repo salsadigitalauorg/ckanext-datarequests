@@ -118,7 +118,7 @@ Feature: Datarequest
         And I should see an element with xpath "//a[@title='Delete' and contains(@class, 'btn-danger')]"
         And I should see an element with xpath "//a[contains(@title, 'Delete all') and contains(@class, 'btn-danger-serious')]"
 
-        When I press the element with xpath "//a[contains(@title, 'Delete all') and contains(@class, 'btn-danger-serious')][0]"
+        When I press the element with xpath "//a[contains(@title, 'Delete all') and contains(@class, 'btn-danger-serious')][1]"
         Then I should see an element with xpath "//div[contains(@class, 'alert') and contains(string(), 'Deleted') and contains(string(), 'data request(s)')]"
 
         When I go to the "test_org_editor" profile page
