@@ -6,8 +6,6 @@ set -ex
 
 ahoy lint
 
-echo "==> Run Unit tests"
 ahoy test-unit
 
-echo "==> Run BDD tests"
 ahoy test-bdd
