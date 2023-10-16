@@ -142,6 +142,14 @@ def go_to_admin_config(context):
     """)
 
 
+@when(u'I log out')
+def log_out(context):
+    context.execute_steps(u"""
+        When I visit "/user/_logout"
+        Then I should see "Log in"
+    """)
+
+
 @then(u'I should see the add comment form')
 def comment_form_visible(context):
     context.execute_steps(u"""
