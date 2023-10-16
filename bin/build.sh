@@ -2,8 +2,7 @@
 ##
 # Build site in CI.
 #
-set -e
-set -x
+set -ex
 
 # Process Docker Compose configuration. This is used to avoid multiple
 # docker-compose.yml files.
@@ -24,7 +23,8 @@ else
 fi
 
 sed "s|{CKAN_VERSION}|$CKAN_VERSION|g" .docker/Dockerfile-template.ckan \
+    | sed "s|{PYTHON_VERSION}|$PYTHON_VERSION|g" \
     | sed "s|{PYTHON}|$PYTHON|g" \
-    | sed "s|{PYTHON_VERSION}|$PYTHON_VERSION|g" > .docker/Dockerfile.ckan
+    > .docker/Dockerfile.ckan
 
-ahoy build || (ahoy logs; exit 1)
+ahoy build

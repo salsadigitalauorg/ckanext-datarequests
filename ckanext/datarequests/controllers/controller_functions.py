@@ -458,3 +458,20 @@ def follow(id):
 def unfollow(id):
     # Method is not called
     pass
+
+
+def purge(user_id):
+    """ Delete all data requests associated with the specified account.
+    This is intended for cleanup of spam.
+    """
+    data_dict = {'user_id': user_id}
+    context = _get_context()
+
+    try:
+        tk.get_action(constants.PURGE_DATAREQUESTS)(context, data_dict)
+    except tk.ObjectNotFound as e:
+        log.warn(e)
+        return tk.abort(404, tk._('User %s not found') % user_id)
+
+    h.flash_notice(tk._('Deleted data request(s) for user'))
+    return tk.redirect_to('datarequest.index')

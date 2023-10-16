@@ -31,6 +31,7 @@ UPDATE_DATAREQUEST_COMMENT = 'update_datarequest_comment'
 DELETE_DATAREQUEST_COMMENT = 'delete_datarequest_comment'
 FOLLOW_DATAREQUEST = 'follow_datarequest'
 UNFOLLOW_DATAREQUEST = 'unfollow_datarequest'
+PURGE_DATAREQUESTS = 'purge_datarequests'
 NAME_MAX_LENGTH = 100
 DESCRIPTION_MAX_LENGTH = 1000
 COMMENT_MAX_LENGTH = DESCRIPTION_MAX_LENGTH

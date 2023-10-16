@@ -2,14 +2,14 @@
 ##
 # Create some example content for extension BDD tests.
 #
-set -e
+set -ex
 
 CKAN_ACTION_URL=${CKAN_SITE_URL}api/action
 CKAN_USER_NAME="${CKAN_USER_NAME:-admin}"
 CKAN_DISPLAY_NAME="${CKAN_DISPLAY_NAME:-Administrator}"
 CKAN_USER_EMAIL="${CKAN_USER_EMAIL:-admin@localhost}"
 
-. ${APP_DIR}/scripts/activate
+. ${APP_DIR}/bin/activate
 
 add_user_if_needed () {
     echo "Adding user '$2' ($1) with email address [$3]"
@@ -25,7 +25,7 @@ ckan_cli sysadmin add "${CKAN_USER_NAME}"
 API_KEY=$(ckan_cli user show "${CKAN_USER_NAME}" | tr -d '\n' | sed -r 's/^(.*)apikey=(\S*)(.*)/\2/')
 if [ "$API_KEY" = "None" ]; then
     echo "No API Key found on ${CKAN_USER_NAME}, generating API Token..."
-    API_KEY=$(ckan_cli user token add "${CKAN_USER_NAME}" test_setup |grep -v '^API Token created' | tr -d '[:space:]')
+    API_KEY=$(ckan_cli user token add "${CKAN_USER_NAME}" test_setup |tail -1 | tr -d '[:space:]')
 fi
 
 ##
@@ -36,7 +36,7 @@ echo "Adding ckan.datarequests.closing_circumstances:"
 
 curl -LsH "Authorization: ${API_KEY}" \
     --header "Content-Type: application/json" \
-    --data '{"ckan.datarequests.closing_circumstances":"Released as open data|nominate_dataset\nOpen dataset already exists|nominate_dataset\nPartially released|nominate_dataset\nTo be released as open data at a later date|nominate_approximate_date\nData openly available elsewhere\nNot suitable for release as open data\nRequested data not available/cannot be compiled\nRequestor initiated closure"}' \
+    --data '{"ckan.datarequests.closing_circumstances": "Released as open data|nominate_dataset\nOpen dataset already exists|nominate_dataset\nPartially released|nominate_dataset\nTo be released as open data at a later date|nominate_approximate_date\nData openly available elsewhere\nNot suitable for release as open data\nRequested data not available/cannot be compiled\nRequestor initiated closure"}' \
     ${CKAN_ACTION_URL}/config_option_update
 
 ##
@@ -60,11 +60,12 @@ echo "Creating ${TEST_ORG_TITLE} organisation:"
 
 TEST_ORG=$( \
     curl -LsH "Authorization: ${API_KEY}" \
-    --data '{"name": "'"${TEST_ORG_NAME}"'", "title": "'"${TEST_ORG_TITLE}"'"}' \
+    --data '{"name": "'"${TEST_ORG_NAME}"'", "title": "'"${TEST_ORG_TITLE}"'",
+        "description": "Organisation for testing issues"}' \
     ${CKAN_ACTION_URL}/organization_create
 )
 
-TEST_ORG_ID=$(echo $TEST_ORG | $PYTHON $APP_DIR/scripts/extract-id.py)
+TEST_ORG_ID=$(echo $TEST_ORG | $PYTHON ${APP_DIR}/bin/extract-id.py)
 
 echo "Assigning test users to '${TEST_ORG_TITLE}' organisation (${TEST_ORG_ID}):"
 
@@ -104,7 +105,7 @@ DR_ORG=$( \
     ${CKAN_ACTION_URL}/organization_create
 )
 
-DR_ORG_ID=$(echo $DR_ORG | $PYTHON $APP_DIR/scripts/extract-id.py)
+DR_ORG_ID=$(echo $DR_ORG | $PYTHON $APP_DIR/bin/extract-id.py)
 
 echo "Assigning test users to ${DR_ORG_TITLE} Organisation:"
 
@@ -138,7 +139,7 @@ Closed_DR=$( \
 echo $Closed_DR
 
 # Get the ID of that newly created Data Request
-CLOSE_DR_ID=$(echo $Closed_DR | $PYTHON $APP_DIR/scripts/extract-id.py)
+CLOSE_DR_ID=$(echo $Closed_DR | $PYTHON $APP_DIR/bin/extract-id.py)
 echo $CLOSE_DR_ID
 
 echo "Closing Data Request:"
@@ -159,4 +160,4 @@ curl -LsH "Authorization: ${API_KEY}" \
 
 ckan_cli search-index rebuild
 
-. ${APP_DIR}/scripts/deactivate
+. ${APP_DIR}/bin/deactivate
