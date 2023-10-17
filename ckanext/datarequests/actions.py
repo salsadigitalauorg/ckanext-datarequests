@@ -25,8 +25,9 @@ try:
 except ImportError:
     from cgi import escape
 
-from ckan import model
+from ckan import authz, model
 from ckan.lib import mailer
+from ckan.lib.redis import connect_to_redis
 from ckan.plugins import toolkit as tk
 from ckan.plugins.toolkit import h, config
 
@@ -37,6 +38,10 @@ log = logging.getLogger(__name__)
 
 # Avoid user_show lag
 USERS_CACHE = {}
+
+# Allow one request per account per five minutes
+CREATION_THROTTLE_EXPIRY = 300
+THROTTLE_ERROR = "Too many requests submitted, please wait {} minutes and try again"
 
 
 def _get_user(user_id):
@@ -180,6 +185,37 @@ def _send_mail(user_ids, action_type, datarequest):
             log.exception("Error sending notification to {0}".format(user_id))
 
 
+def throttle_datarequest(creator):
+    """ Check that the account is not creating requests too quickly.
+    This should happen after validation, so a request that fails
+    validation can be immediately corrected and resubmitted.
+    """
+    if creator.sysadmin or authz.has_user_permission_for_some_org(creator.name, 'create_dataset'):
+        # privileged users can skip the throttle
+        return
+
+    # check cache to see if there's a record of a recent creation
+    cache_key = '{}.ckanext.datarequest.creation_attempts.{}'.format(
+        tk.config.get('ckan.site_id'), creator.id)
+    redis_conn = connect_to_redis()
+    try:
+        creation_attempts = int(redis_conn.get(cache_key) or 0)
+    except ValueError:
+        # shouldn't happen but let's play it safe
+        creation_attempts = 0
+
+    if creation_attempts:
+        # Double the delay every time someone tries too soon
+        expiry = (2 ** (creation_attempts - 1)) * CREATION_THROTTLE_EXPIRY
+    else:
+        expiry = CREATION_THROTTLE_EXPIRY
+    log.debug("Account %s has submitted %s request(s) recently, next allowed in %s seconds",
+              creator.id, creation_attempts, expiry)
+    redis_conn.set(cache_key, creation_attempts + 1, ex=expiry)
+    if creation_attempts:
+        raise tk.ValidationError({"": [THROTTLE_ERROR.format(int(expiry / 60))]})
+
+
 def create_datarequest(context, data_dict):
     '''
     Action to create a new data request. The function checks the access rights
@@ -214,10 +250,14 @@ def create_datarequest(context, data_dict):
     # Validate data
     validator.validate_datarequest(context, data_dict)
 
+    # Ensure account isn't creating requests too fast
+    creator = context['auth_user_obj']
+    throttle_datarequest(creator)
+
     # Store the data
     data_req = db.DataRequest()
     _undictize_datarequest_basic(data_req, data_dict)
-    data_req.user_id = context['auth_user_obj'].id
+    data_req.user_id = creator.id
     data_req.open_time = datetime.datetime.utcnow()
 
     session.add(data_req)
@@ -227,7 +267,7 @@ def create_datarequest(context, data_dict):
 
     if datarequest_dict['organization']:
         users = {user['id'] for user in datarequest_dict['organization']['users']}
-        users.discard(context['auth_user_obj'].id)
+        users.discard(creator.id)
         _send_mail(users, 'new_datarequest', datarequest_dict)
 
     return datarequest_dict
