@@ -78,6 +78,12 @@ class MixinPlugin(p.SingletonPlugin):
                 controller_functions.user,
                 ('GET',),
             ),
+            (
+                "/{}/purge/<user_id>".format(constants.DATAREQUESTS_MAIN_PATH),
+                "purge",
+                controller_functions.purge,
+                ('POST',),
+            ),
         ]
 
         if self.comments_enabled:

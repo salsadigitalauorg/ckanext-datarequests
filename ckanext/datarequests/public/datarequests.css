@@ -2,6 +2,11 @@
    width: auto;
 }
 
+.btn-danger-serious {
+    border: 5px black solid !important;
+    margin: -5px 5px 5px 5px;
+}
+
 .label-open {
     background-color: #2db55d;
     margin-right: 10px;
@@ -17,7 +22,7 @@
 }
 
 .comment-form-actions {
-	text-align: right;
+    text-align: right;
 }
 
 .date-datarequests {

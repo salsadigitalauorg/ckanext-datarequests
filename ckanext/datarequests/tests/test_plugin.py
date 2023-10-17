@@ -23,7 +23,7 @@ import unittest
 from mock import MagicMock, patch
 from parameterized import parameterized
 
-TOTAL_ACTIONS = 13
+TOTAL_ACTIONS = 14
 COMMENTS_ACTIONS = 5
 ACTIONS_NO_COMMENTS = TOTAL_ACTIONS - COMMENTS_ACTIONS
 
