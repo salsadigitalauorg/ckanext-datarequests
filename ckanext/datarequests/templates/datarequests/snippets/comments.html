@@ -1,8 +1,14 @@
+{% import 'macros/form.html' as form %}
+
 <h2 class="page-heading">
   {% block page_heading %}
     {{ _('Current Discussion') }}
   {% endblock %}
 </h2>
+
+{% if c.errors_summary %}
+{{ form.errors(c.errors_summary) }}
+{% endif %}
 
 {% if comments %}
   {% for comment in comments %}
