@@ -205,13 +205,15 @@ def throttle_datarequest(creator):
         creation_attempts = 0
 
     if creation_attempts:
-        # Double the delay every time someone tries too soon
-        expiry = (2 ** (creation_attempts - 1)) * CREATION_THROTTLE_EXPIRY
+        # Increase the delay every time someone tries too soon
+        expiry = creation_attempts * CREATION_THROTTLE_EXPIRY
     else:
         expiry = CREATION_THROTTLE_EXPIRY
     log.debug("Account %s has submitted %s request(s) recently, next allowed in %s seconds",
               creator.id, creation_attempts, expiry)
-    redis_conn.set(cache_key, creation_attempts + 1, ex=expiry)
+    # put a cap on the maximum delay
+    recorded_attempts = creation_attempts if creation_attempts >= 100 else creation_attempts + 1
+    redis_conn.set(cache_key, recorded_attempts, ex=expiry)
     if creation_attempts:
         raise tk.ValidationError({"": [THROTTLE_ERROR.format(int(expiry / 60))]})
 
