@@ -135,3 +135,15 @@ Feature: Datarequest
         When I go to the "test_org_editor" profile page
         And I press the element with xpath "//ul[contains(@class, 'nav-tabs')]//a[contains(string(), 'Data Requests')]"
         Then I should see "No data requests found"
+
+    Scenario: An unprivileged user who tries to create multiple data requests close together should see an error
+        Given "CKANUser" as the persona
+        When I log in
+        And I create a datarequest
+        And I go to the data requests page
+        And I press "Add Data Request"
+        And I fill in title with random text
+        And I fill in "description" with "Test throttling"
+        And I press the element with xpath "//button[contains(@class, 'btn-primary')]"
+        Then I should see "Too many requests submitted, please wait"
+

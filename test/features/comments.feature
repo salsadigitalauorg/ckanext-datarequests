@@ -3,7 +3,7 @@ Feature: Comments
 
     @comment-add
     Scenario: When a logged-in user submits a comment on a Data Request the comment should then be visible on the Comments tab of the Data Request
-        Given "CKANUser" as the persona
+        Given "TestOrgMember" as the persona
         When I log in
         And I create a datarequest
         And I go to data request "$last_generated_title" comments
