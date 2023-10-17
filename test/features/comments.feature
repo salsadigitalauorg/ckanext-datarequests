@@ -20,3 +20,12 @@ Feature: Comments
         Then I should see "Are you sure you want to delete this comment?" within 1 seconds
         When I press the element with xpath "//button[contains(string(), 'Confirm')]"
         Then I should see "Comment has been deleted" within 2 seconds
+
+    @comment-add @comment-profane @datarequest
+    Scenario: When a logged-in user submits a comment containing profanity on a Data Request they should receive an error message and the comment will not appear
+        Given "CKANUser" as the persona
+        When I log in
+        And I create a datarequest
+        And I go to data request "$last_generated_title" comments
+        And I submit a comment with subject "Test subject" and comment "He had sheep, and oxen, and he asses, and menservants, and maidservants, and she asses, and camels."
+        Then I should see "Comment blocked due to profanity" within 5 seconds

@@ -53,6 +53,16 @@ Feature: Datarequest
         And I should see an element with the css selector "span.error-block" within 1 seconds
         And I should see "Description cannot be empty" within 1 seconds
 
+    Scenario: When a logged-in user submits a Data Request containing profanity they should receive an error message and the request will not be created
+        Given "CKANUser" as the persona
+        When I log in
+        And I go to the data requests page
+        And I press "Add Data Request"
+        And I fill in title with random text
+        And I fill in "description" with "He had sheep, and oxen, and he asses, and menservants, and maidservants, and she asses, and camels."
+        And I press the element with xpath "//button[contains(@class, 'btn-primary') and contains(string(), 'Create Data Request')]"
+        Then I should see "Blocked due to profanity" within 5 seconds
+
     Scenario Outline: Data request creator and Sysadmin can see a 'Close' button on the data request detail page for opened data requests
         Given "<User>" as the persona
         When I log in
