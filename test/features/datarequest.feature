@@ -94,7 +94,6 @@ Feature: Datarequest
         Given "TestOrgEditor" as the persona
         When I log in
         And I create a datarequest
-
         Then I should see an element with xpath "//i[contains(@class, 'icon-unlock')]"
         And I should see an element with xpath "//a[contains(string(), 'Close')]"
 
@@ -102,7 +101,6 @@ Feature: Datarequest
         Given "DataRequestOrgAdmin" as the persona
         When I log in
         And I create a datarequest
-
         And I press the element with xpath "//a[contains(string(), 'Close')]"
         And I select "Requestor initiated closure" from "close_circumstance"
         And I press the element with xpath "//button[contains(@class, 'btn-danger') and contains(string(), 'Close Data Request')]"

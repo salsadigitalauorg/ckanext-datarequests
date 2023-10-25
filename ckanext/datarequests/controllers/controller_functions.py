@@ -467,11 +467,17 @@ def purge(user_id):
     data_dict = {'user_id': user_id}
     context = _get_context()
 
-    try:
-        tk.get_action(constants.PURGE_DATAREQUESTS)(context, data_dict)
-    except tk.ObjectNotFound as e:
-        log.warn(e)
-        return tk.abort(404, tk._('User %s not found') % user_id)
+    post_params = request_helpers.get_post_params()
+    if post_params:
+        if 'cancel' in post_params:
+            return tk.redirect_to('datarequest.index')
 
-    h.flash_notice(tk._('Deleted data request(s) for user'))
-    return tk.redirect_to('datarequest.index')
+        try:
+            tk.get_action(constants.PURGE_DATAREQUESTS)(context, data_dict)
+            h.flash_notice(tk._('Deleted data request(s) for user'))
+            return tk.redirect_to('datarequest.index')
+        except tk.ObjectNotFound as e:
+            log.warn(e)
+            return tk.abort(404, tk._('User %s not found') % user_id)
+    else:
+        return tk.render('datarequests/confirm_delete_all.html', extra_vars={'user_id': user_id})
