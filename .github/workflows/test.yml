@@ -31,6 +31,11 @@ jobs:
         run: bin/test.sh
         timeout-minutes: 20
 
+      - name: Retrieve logs
+        if: always()
+        run: ahoy logs
+        timeout-minutes: 5
+
       - name: Retrieve screenshots
         if: failure()
         run: bin/process-artifacts.sh
