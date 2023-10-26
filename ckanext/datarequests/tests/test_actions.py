@@ -256,8 +256,7 @@ class ActionsTest(unittest.TestCase):
             }
             toolkit_mock.render.assert_any_call('emails/subjects/{0}.txt'.format(action_type), extra_args)
             toolkit_mock.render.assert_any_call('emails/bodies/{0}.txt'.format(action_type), extra_args)
-
-            mailer_mock.mail_user.assert_any_call(get_users_side_effect[i], subject, body)
+            toolkit_mock.enqueue_job.assert_any_call(mailer_mock.mail_user, [get_users_side_effect[i], subject, body], title=None)
 
     @patch('ckanext.datarequests.actions.config')
     @patch('ckanext.datarequests.actions.mailer')
@@ -287,8 +286,7 @@ class ActionsTest(unittest.TestCase):
         }
         toolkit_mock.render.assert_any_call('emails/subjects/{0}.txt'.format(action_type), extra_args)
         toolkit_mock.render.assert_any_call('emails/bodies/{0}.txt'.format(action_type), extra_args)
-
-        mailer_mock.mail_user.assert_any_call(user, subject, body)
+        toolkit_mock.enqueue_job.assert_any_call(mailer_mock.mail_user, [user, subject, body], title=None)
 
     ######################################################################
     ################################# NEW ################################
@@ -325,7 +323,8 @@ class ActionsTest(unittest.TestCase):
         assert 0 == self.context['session'].commit.call_count
 
     @patch('ckanext.datarequests.actions._send_mail')
-    def test_create_datarequest_valid(self, send_mail_mock):
+    @patch('ckanext.datarequests.actions._get_datarequest_involved_users')
+    def test_create_datarequest_valid(self, get_datarequest_involved_users_mock, send_mail_mock):
         # Configure the mocks
         current_time = self._datetime.datetime.utcnow()
         actions.datetime.datetime.utcnow = MagicMock(return_value=current_time)
@@ -348,7 +347,10 @@ class ActionsTest(unittest.TestCase):
 
         self.context['session'].add.assert_called_once_with(datarequest)
         self.context['session'].commit.assert_called_once()
-        send_mail_mock.assert_called_once_with({'user_1', 'user_2'}, 'new_datarequest', result)
+        send_mail_mock.assert_called_once_with(
+            {'user_1', 'user_2'}, 'new_datarequest', result,
+            'Data Request Created Email'
+        )
 
         # Check the object stored in the database
         assert self.context['auth_user_obj'].id == datarequest.user_id
@@ -709,7 +711,10 @@ class ActionsTest(unittest.TestCase):
         pkg = default_pkg if expected_accepted_ds else None
         self._check_basic_response(datarequest, result, default_user, org, pkg)
 
-        send_mail_mock.assert_called_once_with(get_datarequest_involved_users_mock.return_value, 'close_datarequest', result)
+        send_mail_mock.assert_called_once_with(
+            get_datarequest_involved_users_mock.return_value,
+            'close_datarequest', result, 'Data Request Closed Send Email'
+        )
         get_datarequest_involved_users_mock.assert_called_once_with(self.context, result)
 
     ######################################################################

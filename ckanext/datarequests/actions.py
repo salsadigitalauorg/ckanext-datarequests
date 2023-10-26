@@ -164,8 +164,7 @@ def _get_datarequest_involved_users(context, datarequest_dict):
     return users
 
 
-def _send_mail(user_ids, action_type, datarequest):
-
+def _send_mail(user_ids, action_type, datarequest, job_title=None):
     for user_id in user_ids:
         try:
             user_data = model.User.get(user_id)
@@ -179,8 +178,7 @@ def _send_mail(user_ids, action_type, datarequest):
             subject = tk.render('emails/subjects/{0}.txt'.format(action_type), extra_vars)
             body = tk.render('emails/bodies/{0}.txt'.format(action_type), extra_vars)
 
-            mailer.mail_user(user_data, subject, body)
-
+            tk.enqueue_job(mailer.mail_user, [user_data, subject, body], title=job_title)
         except Exception:
             log.exception("Error sending notification to {0}".format(user_id))
 
@@ -270,7 +268,7 @@ def create_datarequest(context, data_dict):
     if datarequest_dict['organization']:
         users = {user['id'] for user in datarequest_dict['organization']['users']}
         users.discard(creator.id)
-        _send_mail(users, 'new_datarequest', datarequest_dict)
+        _send_mail(users, 'new_datarequest', datarequest_dict, 'Data Request Created Email')
 
     return datarequest_dict
 
@@ -602,7 +600,8 @@ def close_datarequest(context, data_dict):
 
     # Mailing
     users = _get_datarequest_involved_users(context, datarequest_dict)
-    _send_mail(users, 'close_datarequest', datarequest_dict)
+    _send_mail(users, 'close_datarequest',
+               datarequest_dict, 'Data Request Closed Send Email')
 
     return datarequest_dict
 
