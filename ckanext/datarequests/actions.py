@@ -53,7 +53,7 @@ def _get_user(user_id):
             USERS_CACHE[user_id] = user
             return user
     except Exception as e:
-        log.warn(e)
+        log.warning(e)
 
 
 def _get_organization(organization_id):
@@ -61,7 +61,7 @@ def _get_organization(organization_id):
         organization_show = tk.get_action('organization_show')
         return organization_show({'ignore_auth': True}, {'id': organization_id, 'include_users': True})
     except Exception as e:
-        log.warn(e)
+        log.warning(e)
 
 
 def _get_package(package_id):
@@ -69,7 +69,7 @@ def _get_package(package_id):
         package_show = tk.get_action('package_show')
         return package_show({'ignore_auth': True}, {'id': package_id})
     except Exception as e:
-        log.warn(e)
+        log.warning(e)
 
 
 def _dictize_datarequest(datarequest):
@@ -234,7 +234,7 @@ def create_datarequest(context, data_dict):
     :param description: A brief description for your data request
     :type description: string
 
-    :param organiztion_id: The ID of the organization you want to asign the
+    :param organization_id: The ID of the organization you want to asign the
         data request (optional).
     :type organization_id: string
 
@@ -331,7 +331,7 @@ def update_datarequest(context, data_dict):
     :param description: A brief description for your data request
     :type description: string
 
-    :param organiztion_id: The ID of the organization you want to asign the
+    :param organization_id: The ID of the organization you want to asign the
         data request.
     :type organization_id: string
 

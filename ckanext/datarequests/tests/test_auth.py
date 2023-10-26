@@ -136,11 +136,11 @@ class AuthTest(unittest.TestCase):
             initial_request_data = request_data
 
         result = function(context, initial_request_data).get('success')
-        self.assertEquals(expected_result, result)
+        assert expected_result == result
 
         if action_called:
             auth.get_action.assert_called_once_with(show_function)
             xyz_show = auth.get_action.return_value
             xyz_show.assert_called_once_with({'ignore_auth': True}, {'id': request_data['id']})
         else:
-            self.assertEquals(0, auth.get_action.call_count)
+            assert 0 == auth.get_action.call_count
