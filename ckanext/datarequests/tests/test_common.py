@@ -50,7 +50,7 @@ class DataRequestCommonTest(unittest.TestCase):
         is_fontawesome_4_patch.start()
         self.addCleanup(is_fontawesome_4_patch.stop)
 
-        self.assertEquals('plus-square', common.get_plus_icon())
+        assert 'plus-square' == common.get_plus_icon()
 
     def test_get_plus_icon_old(self):
 
@@ -58,7 +58,7 @@ class DataRequestCommonTest(unittest.TestCase):
         is_fontawesome_4_patch.start()
         self.addCleanup(is_fontawesome_4_patch.stop)
 
-        self.assertEquals('plus-sign-alt', common.get_plus_icon())
+        assert 'plus-sign-alt' == common.get_plus_icon()
 
     def test_get_question_icon_new(self):
 
@@ -66,7 +66,7 @@ class DataRequestCommonTest(unittest.TestCase):
         is_fontawesome_4_patch.start()
         self.addCleanup(is_fontawesome_4_patch.stop)
 
-        self.assertEquals('question-circle', common.get_question_icon())
+        assert 'question-circle' == common.get_question_icon()
 
     def test_get_question_icon_old(self):
 
@@ -74,4 +74,4 @@ class DataRequestCommonTest(unittest.TestCase):
         is_fontawesome_4_patch.start()
         self.addCleanup(is_fontawesome_4_patch.stop)
 
-        self.assertEquals('question-sign', common.get_question_icon())
+        assert 'question-sign' == common.get_question_icon()

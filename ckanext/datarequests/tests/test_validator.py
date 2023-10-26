@@ -66,7 +66,7 @@ class ValidatorTest(unittest.TestCase):
         group_validator.assert_called_once_with(self.request_data['organization_id'], context)
 
         if avoid_existing_title_check:
-            self.assertEquals(0, validator.db.DataRequest.datarequest_exists.call_count)
+            assert 0 == validator.db.DataRequest.datarequest_exists.call_count
         else:
             validator.db.DataRequest.datarequest_exists.assert_called_once_with(self.request_data['title'])
 
@@ -79,7 +79,7 @@ class ValidatorTest(unittest.TestCase):
             'Description must be a maximum of %d characters long' % validator.constants.DESCRIPTION_MAX_LENGTH),
 
     ])
-    def test_validate_name_description(self, field, value, title_exists, excepction_msg):
+    def test_validate_name_description(self, field, value, title_exists, exception_msg):
         context = {}
         # request_data fields are always in lowercase
         self.request_data[field.lower()] = value
@@ -88,8 +88,7 @@ class ValidatorTest(unittest.TestCase):
         with self.assertRaises(self._tk.ValidationError) as c:
             validator.validate_datarequest(context, self.request_data)
 
-        self.assertEquals({field: [excepction_msg]},
-                          c.exception.error_dict)
+        assert {field: [exception_msg]} == c.exception.error_dict
 
     def test_invalid_org(self):
         context = {}
@@ -99,14 +98,13 @@ class ValidatorTest(unittest.TestCase):
         with self.assertRaises(self._tk.ValidationError) as c:
             validator.validate_datarequest(context, self.request_data)
 
-        self.assertEquals({'Organization': ['Organization is not valid']},
-                          c.exception.error_dict)
+        assert {'Organization': ['Organization is not valid']} == c.exception.error_dict
 
     def test_missing_org(self):
         self.request_data['organization_id'] = ''
         context = MagicMock()
         self.assertIsNone(validator.validate_datarequest(context, self.request_data))
-        self.assertEquals(0, validator.tk.get_validator.call_count)
+        assert 0 == validator.tk.get_validator.call_count
 
     def test_close_invalid_accepted_dataset(self):
         context = {}
@@ -123,8 +121,7 @@ class ValidatorTest(unittest.TestCase):
 
         # Check that the validator has been properly called
         package_validator.assert_called_once_with(accepted_ds_id, context)
-        self.assertEquals({'Accepted Dataset': ['Dataset not found']},
-                          c.exception.error_dict)
+        assert {'Accepted Dataset': ['Dataset not found']} == c.exception.error_dict
 
     def test_close_valid(self):
         context = {}
@@ -157,7 +154,7 @@ class ValidatorTest(unittest.TestCase):
         with self.assertRaises(self._tk.ValidationError) as c:
             validator.validate_comment(context, request_data)
 
-        self.assertEquals({field: [message]}, c.exception.error_dict)
+        assert {field: [message]} == c.exception.error_dict
 
     def test_comment_invalid_datarequest(self):
         show_datarequest = validator.tk.get_action.return_value
@@ -175,4 +172,4 @@ class ValidatorTest(unittest.TestCase):
 
         result = validator.validate_comment({}, request_data)
 
-        self.assertEquals(result, show_datarequest.return_value)
+        assert result == show_datarequest.return_value

@@ -145,10 +145,10 @@ def _show_index(user_id, organization_id, include_organization_facet, url_func, 
         return tk.render(file_to_render, extra_vars=extra_vars)
     except ValueError as e:
         # This exception should only occur if the page value is not valid
-        log.warn(e)
+        log.warning(e)
         return tk.abort(400, tk._('"page" parameter must be an integer'))
     except tk.NotAuthorized as e:
-        log.warn(e)
+        log.warning(e)
         return tk.abort(403, tk._('Unauthorized to list Data Requests'))
 
 
@@ -174,7 +174,7 @@ def _process_post(action, context):
             return tk.redirect_to(tk.url_for('datarequest.show', id=result['id']))
 
         except tk.ValidationError as e:
-            log.warn(e)
+            log.warning(e)
             # Fill the fields that will display some information in the page
             c.datarequest = {
                 'id': data_dict.get('id', ''),
@@ -210,7 +210,7 @@ def new():
         post_result = _process_post(constants.CREATE_DATAREQUEST, context)
         return post_result or tk.render('datarequests/new.html')
     except tk.NotAuthorized as e:
-        log.warn(e)
+        log.warning(e)
         return tk.abort(403, tk._('Unauthorized to create a Data Request'))
 
 
@@ -229,7 +229,7 @@ def show(id):
     except tk.ObjectNotFound:
         return tk.abort(404, tk._('Data Request %s not found') % id)
     except tk.NotAuthorized as e:
-        log.warn(e)
+        log.warning(e)
         return tk.abort(403, tk._('You are not authorized to view the Data Request %s' % id))
 
 
@@ -249,10 +249,10 @@ def update(id):
         post_result = _process_post(constants.UPDATE_DATAREQUEST, context)
         return post_result or tk.render('datarequests/edit.html')
     except tk.ObjectNotFound as e:
-        log.warn(e)
+        log.warning(e)
         return tk.abort(404, tk._('Data Request %s not found') % id)
     except tk.NotAuthorized as e:
-        log.warn(e)
+        log.warning(e)
         return tk.abort(403, tk._('You are not authorized to update the Data Request %s' % id))
 
 
@@ -266,10 +266,10 @@ def delete(id):
         h.flash_notice(tk._('Data Request %s has been deleted') % datarequest.get('title', ''))
         return tk.redirect_to(tk.url_for('datarequest.index'))
     except tk.ObjectNotFound as e:
-        log.warn(e)
+        log.warning(e)
         return tk.abort(404, tk._('Data Request %s not found') % id)
     except tk.NotAuthorized as e:
-        log.warn(e)
+        log.warning(e)
         return tk.abort(403, tk._('You are not authorized to delete the Data Request %s' % id))
 
 
@@ -353,14 +353,14 @@ def close(id):
             return _return_page()
 
     except tk.ValidationError as e:  # Accepted Dataset is not valid
-        log.warn(e)
+        log.warning(e)
         errors_summary = _get_errors_summary(e.error_dict)
         return _return_page(e.error_dict, errors_summary)
     except tk.ObjectNotFound as e:
-        log.warn(e)
+        log.warning(e)
         return tk.abort(404, tk._('Data Request %s not found') % id)
     except tk.NotAuthorized as e:
-        log.warn(e)
+        log.warning(e)
         return tk.abort(403, tk._('You are not authorized to close the Data Request %s' % id))
 
 
@@ -398,14 +398,14 @@ def comment(id):
                 h.flash_notice(flash_message)
 
             except tk.NotAuthorized as e:
-                log.warn(e)
+                log.warning(e)
                 return tk.abort(403, tk._('You are not authorized to %s' % action_text))
             except tk.ValidationError as e:
-                log.warn(e)
+                log.warning(e)
                 c.errors = e.error_dict
                 c.errors_summary = _get_errors_summary(c.errors)
             except tk.ObjectNotFound as e:
-                log.warn(e)
+                log.warning(e)
                 return tk.abort(404, tk._(str(e)))
             # Other exceptions are not expected. Otherwise, the request will fail.
 
@@ -426,11 +426,11 @@ def comment(id):
         return tk.render('datarequests/comment.html')
 
     except tk.ObjectNotFound as e:
-        log.warn(e)
+        log.warning(e)
         return tk.abort(404, tk._('Data Request %s not found' % id))
 
     except tk.NotAuthorized as e:
-        log.warn(e)
+        log.warning(e)
         return tk.abort(403, tk._('You are not authorized to list the comments of the Data Request %s' % id))
 
 
@@ -443,10 +443,10 @@ def delete_comment(datarequest_id, comment_id):
         h.flash_notice(tk._('Comment has been deleted'))
         return tk.redirect_to(tk.url_for('datarequest.comment', id=datarequest_id))
     except tk.ObjectNotFound as e:
-        log.warn(e)
+        log.warning(e)
         return tk.abort(404, tk._('Comment %s not found') % comment_id)
     except tk.NotAuthorized as e:
-        log.warn(e)
+        log.warning(e)
         return tk.abort(403, tk._('You are not authorized to delete this comment'))
 
 
@@ -477,7 +477,7 @@ def purge(user_id):
             h.flash_notice(tk._('Deleted data request(s) for user'))
             return tk.redirect_to('datarequest.index')
         except tk.ObjectNotFound as e:
-            log.warn(e)
+            log.warning(e)
             return tk.abort(404, tk._('User %s not found') % user_id)
     else:
         return tk.render('datarequests/confirm_delete_all.html', extra_vars={'user_id': user_id})
