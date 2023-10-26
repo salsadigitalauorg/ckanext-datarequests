@@ -31,7 +31,7 @@ from ckan.lib.redis import connect_to_redis
 from ckan.plugins import toolkit as tk
 from ckan.plugins.toolkit import h, config
 
-from . import constants, db, validator
+from . import common, constants, db, validator
 
 
 log = logging.getLogger(__name__)
@@ -155,8 +155,9 @@ def _get_datarequest_involved_users(context, datarequest_dict):
     users.update([follower.user_id for follower in db.DataRequestFollower.get(datarequest_id=datarequest_id)])
     users.update([comment['user_id'] for comment in list_datarequest_comments(new_context, {'datarequest_id': datarequest_id})])
 
-    if datarequest_dict['organization']:
-        users.update([user['id'] for user in datarequest_dict['organization']['users']])
+    org = datarequest_dict.get('organization')
+    if org:
+        users.update(_get_admin_users_from_organisation(org))
 
     # Notifications are not sent to the user that performs the action
     users.discard(context['auth_user_obj'].id)
@@ -181,6 +182,14 @@ def _send_mail(user_ids, action_type, datarequest, job_title=None):
             tk.enqueue_job(mailer.mail_user, [user_data, subject, body], title=job_title)
         except Exception:
             log.exception("Error sending notification to {0}".format(user_id))
+
+
+def _get_admin_users_from_organisation(org_dict):
+    all_users = org_dict.get('users', [])
+    if common.get_config_bool_value('ckanext.datarequests.notify_all_members', True):
+        return {user['id'] for user in all_users}
+    else:
+        return {user['id'] for user in all_users if user.get('capacity') == 'admin'}
 
 
 def throttle_datarequest(creator):
@@ -265,8 +274,9 @@ def create_datarequest(context, data_dict):
 
     datarequest_dict = _dictize_datarequest(data_req)
 
-    if datarequest_dict['organization']:
-        users = {user['id'] for user in datarequest_dict['organization']['users']}
+    org = datarequest_dict.get('organization')
+    if org:
+        users = _get_admin_users_from_organisation(org)
         users.discard(creator.id)
         _send_mail(users, 'new_datarequest', datarequest_dict, 'Data Request Created Email')
 
@@ -361,13 +371,34 @@ def update_datarequest(context, data_dict):
     # Validate data
     validator.validate_datarequest(context, data_dict)
 
+    # Determine whether organisation has changed
+    organisation_updated = data_req.organization_id != data_dict['organization_id']
+    if organisation_updated:
+        unassigned_organisation_id = data_req.organization_id
+
     # Set the data provided by the user in the data_red
     _undictize_datarequest_basic(data_req, data_dict)
 
     session.add(data_req)
     session.commit()
 
-    return _dictize_datarequest(data_req)
+    datarequest_dict = _dictize_datarequest(data_req)
+
+    if organisation_updated and common.get_config_bool_value('ckanext.datarequests.notify_on_update'):
+        org = datarequest_dict['organization']
+        # Email Admin users of the assigned organisation
+        if org:
+            users = _get_admin_users_from_organisation(org)
+            users.discard(context['auth_user_obj'].id)
+            _send_mail(users, 'new_datarequest_organisation',
+                       datarequest_dict, 'Data Request Assigned Email')
+        # Email Admin users of unassigned organisation
+        users = _get_admin_users_from_organisation(_get_organization(unassigned_organisation_id))
+        users.discard(context['auth_user_obj'].id)
+        _send_mail(users, 'unassigned_datarequest_organisation',
+                   datarequest_dict, 'Data Request Unassigned Email')
+
+    return datarequest_dict
 
 
 def list_datarequests(context, data_dict):
