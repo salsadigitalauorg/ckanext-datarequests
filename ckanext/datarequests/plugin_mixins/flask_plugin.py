@@ -82,7 +82,7 @@ class MixinPlugin(p.SingletonPlugin):
                 "/{}/purge/<user_id>".format(constants.DATAREQUESTS_MAIN_PATH),
                 "purge",
                 controller_functions.purge,
-                ('POST',),
+                ('GET', 'POST',),
             ),
         ]
 

@@ -94,7 +94,6 @@ Feature: Datarequest
         Given "TestOrgEditor" as the persona
         When I log in
         And I create a datarequest
-
         Then I should see an element with xpath "//i[contains(@class, 'icon-unlock')]"
         And I should see an element with xpath "//a[contains(string(), 'Close')]"
 
@@ -102,7 +101,6 @@ Feature: Datarequest
         Given "DataRequestOrgAdmin" as the persona
         When I log in
         And I create a datarequest
-
         And I press the element with xpath "//a[contains(string(), 'Close')]"
         And I select "Requestor initiated closure" from "close_circumstance"
         And I press the element with xpath "//button[contains(@class, 'btn-danger') and contains(string(), 'Close Data Request')]"
@@ -125,10 +123,12 @@ Feature: Datarequest
         And I log in
         And I go to the "test_org_editor" profile page
         And I press the element with xpath "//ul[contains(@class, 'nav-tabs')]//a[contains(string(), 'Data Requests')]"
-        And I should see an element with xpath "//a[@title='Delete' and contains(@class, 'btn-danger')]"
+        And I take a debugging screenshot
+        Then I should see an element with xpath "//a[@title='Delete' and contains(@class, 'btn-danger')]"
         And I should see an element with xpath "//a[contains(@title, 'Delete all') and contains(@class, 'btn-danger-serious')]"
 
         When I press the element with xpath "//a[contains(@title, 'Delete all') and contains(@class, 'btn-danger-serious')][1]"
+        And I take a debugging screenshot
         And I confirm the dialog containing "Are you sure you want to" if present
         Then I should see an element with xpath "//div[contains(@class, 'alert') and contains(string(), 'Deleted') and contains(string(), 'data request(s)')]"
 
