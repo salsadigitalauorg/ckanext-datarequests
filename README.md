@@ -240,6 +240,13 @@ ckan.datarequests.show_datarequests_badge = [true|false]
 ```
 ckan.datarequests.description_required = [True|False]
 ```
+* Adjust notification settings if needed.
+```
+# Whether notifications go to all affected organisation members, or just admins
+ckanext.datarequests.notify_all_members
+# Whether notifications are sent when a data request is updated
+ckanext.datarequests.notify_on_update
+```
 * Update the database schema
 ```
 ckan -c <config> datarequests init_db
