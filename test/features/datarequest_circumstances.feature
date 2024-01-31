@@ -129,7 +129,7 @@ Feature: Datarequest-circumstances
         And I wait for 1 seconds
         And I take a debugging screenshot
         # Have to use JS to change the selected value as the behaving framework does not work with autocomplete dropdown
-        Then I execute the script "$('#field-accepted_dataset_id').val($('#field-accepted_dataset_id option:eq(1)').attr('value'))"
+        And I execute the script "$('#field-accepted_dataset_id').val($('#field-accepted_dataset_id option:eq(1)').attr('value'))"
         And I press the element with xpath "//button[contains(@class, 'btn-danger') and @name='close' and contains(string(), 'Close Data Request')]"
         Then I should see "Accepted dataset" within 1 seconds
         And I should see "A Wonderful Story" within 1 seconds
