@@ -2,5 +2,6 @@
 
 {% block content_primary_nav %}
   {{ super() }}
-  {{ h.build_nav_icon('datarequest.organization', _('Data Requests'), id=c.group_dict.name, icon=h.get_question_icon())}}
+  {% set group_dict = group_dict or c.group_dict %}
+  {{ h.build_nav_icon('datarequest.organization', _('Data Requests'), id=group_dict.name, icon=h.get_question_icon())}}
 {% endblock %}
