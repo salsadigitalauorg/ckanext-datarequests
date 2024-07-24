@@ -4,11 +4,6 @@
   <section class="module">
     <div class="module-content">
       {% block page_primary_action %}
-        {% if h.check_access('create_datarequest') %}
-          <div class="page_primary_action">
-            {% link_for _('Add Data Request'), named_route='datarequest.new', class_='btn btn-primary', icon=h.get_plus_icon() %}
-          </div>
-        {% endif %}
         {% snippet 'snippets/custom_search_form.html', query=q, fields=(('organization', organization), ('state', state)), sorting=filters, sorting_selected=sort, placeholder=_('Search Data Requests...'), no_bottom_border=true, count=datarequest_count, no_title=True %}
         {{ h.snippet('datarequests/snippets/datarequest_list.html', datarequest_count=datarequest_count, datarequests=datarequests, page=page, q=q)}}
       {% endblock %}
@@ -19,6 +14,12 @@
 {% block secondary_content %}
   {{ super() }}
   {% for facet in facet_titles %}
-    {{ h.snippet('snippets/facet_list.html', title=facet_titles[facet], name=facet) }}
+    {{ h.snippet('snippets/facet_list.html', title=facet_titles[facet], name=facet, search_facets=search_facets) }}
   {% endfor %}
+{% endblock %}
+
+{% block secondary_content_additional_info %}
+  <p>
+    {% trans %}To create a data access request, go to the relevant dataset and select 'Request data access', then complete the form providing clear and relevant information in the applicable fields. Adding sufficient detail limits the subsequent follow up activities needed to properly consider the request. Please be aware that the values entered will be visible to only the requestor and the publishers and admins within the dataset owner's organisation.{% endtrans %}
+  </p>
 {% endblock %}
