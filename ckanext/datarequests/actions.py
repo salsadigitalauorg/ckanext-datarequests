@@ -100,7 +100,8 @@ def _dictize_datarequest(datarequest):
         'requesting_organisation': datarequest.requesting_organisation,
         'data_storage_environment': datarequest.data_storage_environment,
         'data_outputs_type': datarequest.data_outputs_type,
-        'data_outputs_description': datarequest.data_outputs_description
+        'data_outputs_description': datarequest.data_outputs_description,
+        'status': datarequest.status
     }
 
     if datarequest.organization_id:
@@ -132,6 +133,7 @@ def _undictize_datarequest_basic(datarequest, data_dict):
     datarequest.data_storage_environment = data_dict['data_storage_environment']
     datarequest.data_outputs_type = data_dict['data_outputs_type']
     datarequest.data_outputs_description = data_dict['data_outputs_description']
+    datarequest.status = data_dict['status']
 
 
 def _undictize_datarequest_closing_circumstances(datarequest, data_dict):
@@ -504,7 +506,8 @@ def list_datarequests(context, data_dict):
         'Assigned': 0,
         'Processing': 0,
         'Finalised - Approved': 0,
-        'Finalised - Not Approved': 0
+        'Finalised - Not Approved': 0,
+        'Assign to Internal Data Catalogue Support': 0
     }
     for data_req in db_datarequests:
         organization_id = data_req.organization_id

@@ -171,6 +171,7 @@ def _process_post(action, context):
         data_dict['data_storage_environment'] = request_helpers.get_first_post_param('data_storage_environment', '')
         data_dict['data_outputs_type'] = request_helpers.get_first_post_param('data_outputs_type', '')
         data_dict['data_outputs_description'] = request_helpers.get_first_post_param('data_outputs_description', '')
+        data_dict['status'] = request_helpers.get_first_post_param('status', '')
 
         if action == constants.UPDATE_DATAREQUEST:
             data_dict['id'] = request_helpers.get_first_post_param('id', '')
@@ -193,7 +194,8 @@ def _process_post(action, context):
                 'requesting_organisation': data_dict.get('requesting_organisation', ''),
                 'data_storage_environment': data_dict.get('data_storage_environment', ''),
                 'data_outputs_type': data_dict.get('data_outputs_type', ''),
-                'data_outputs_description': data_dict.get('data_outputs_description', '')
+                'data_outputs_description': data_dict.get('data_outputs_description', ''),
+                'status': data_dict.get('status', '')
             }
             c.errors = e.error_dict
             c.errors_summary = _get_errors_summary(c.errors)
@@ -211,7 +213,8 @@ def _process_post(action, context):
                 'requesting_organisation': data_dict.get('requesting_organisation', ''),
                 'data_storage_environment': data_dict.get('data_storage_environment', ''),
                 'data_outputs_type': data_dict.get('data_outputs_type', ''),
-                'data_outputs_description': data_dict.get('data_outputs_description', '')
+                'data_outputs_description': data_dict.get('data_outputs_description', ''),
+                'status': data_dict.get('status', '')
             }
 
 
@@ -272,12 +275,26 @@ def update(id):
     c.datarequest = {}
     c.errors = {}
     c.errors_summary = {}
+    c.requesting_organisation_options = []
+    c.access_to_status_field = True if c.userobj.sysadmin else False
 
     try:
         tk.check_access(constants.UPDATE_DATAREQUEST, context, data_dict)
         c.datarequest = tk.get_action(constants.SHOW_DATAREQUEST)(context, data_dict)
         c.original_title = c.datarequest.get('title')
         post_result = _process_post(constants.UPDATE_DATAREQUEST, context)
+
+        # Get organizations, with empty value for first option
+        organizations = h.organizations_available('read')
+        c.requesting_organisation_options = [{'value': '', 'text': ''}] + [{'value': org['id'], 'text': org['name']} for org in organizations]
+
+        current_user_id = c.userobj.id if c.userobj else None
+        if c.datarequest['organization'] is not None:
+            for user in c.datarequest['organization']['users']:
+                if user['id'] == current_user_id and user['capacity'] in ['editor', 'admin']:
+                    c.access_to_status_field = True
+                    break
+
         return post_result or tk.render('datarequests/edit.html')
     except tk.ObjectNotFound as e:
         log.warning(e)
