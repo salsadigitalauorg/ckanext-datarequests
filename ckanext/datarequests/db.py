@@ -22,7 +22,7 @@ import uuid
 import logging
 
 from ckan import model
-from ckan.common import c
+from ckan.plugins.toolkit import current_user
 from ckanext.datarequests import constants
 
 from sqlalchemy import func, MetaData, DDL
@@ -79,7 +79,7 @@ class DataRequest(model.DomainObject):
 
         order_by_filter = cls.open_time.desc() if desc else cls.open_time.asc()
 
-        current_user_id = c.userobj.id if c.userobj else None
+        current_user_id = current_user.id if current_user else None
         
         if current_user_id:
             current_user_order = case(
