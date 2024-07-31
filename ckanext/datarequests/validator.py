@@ -78,13 +78,13 @@ def validate_datarequest(context, request_data):
         except Exception:
             _add_error(errors, tk._('Organization'), tk._('Organization is not valid'))
 
-    # Check data_use_type data, it should not empty.
+    # Check data_use_type data, it should not be empty.
     data_use_type = request_data['data_use_type']
     data_use_type_field = tk._('Data use type')
     if not data_use_type:
         _add_error(errors, data_use_type_field, tk._('Data use type cannot be empty'))
 
-    # Check who_will_access_this_data, it should empty.
+    # Check who_will_access_this_data, it should not be empty.
     who_will_access_this_data = request_data['who_will_access_this_data']
     who_will_access_this_data_field = tk._('Who will access this data')
     if not who_will_access_this_data:
@@ -93,7 +93,7 @@ def validate_datarequest(context, request_data):
     if who_will_access_this_data and not _has_alpha_chars(who_will_access_this_data, 2):
         _add_error(errors, who_will_access_this_data_field, tk._('Who will access this data need to be longer than two characters and alphabetical'))
 
-    # Check requesting_organisation, it should empty.
+    # Check requesting_organisation, it should not be empty.
     requesting_organisation = request_data['requesting_organisation']
     requesting_organisation_field = tk._('Requesting organisation')
     if not requesting_organisation:
@@ -106,7 +106,7 @@ def validate_datarequest(context, request_data):
         except Exception:
             _add_error(errors, requesting_organisation_field, tk._('Requesting organisation is not valid'))
 
-    # Check data_storage_environment, it should empty.
+    # Check data_storage_environment, it should not be empty.
     data_storage_environment = request_data['data_storage_environment']
     data_storage_environment_field = tk._('Data storage environment')
     if not data_storage_environment:
@@ -115,13 +115,13 @@ def validate_datarequest(context, request_data):
     if data_storage_environment and not _has_alpha_chars(data_storage_environment, 2):
         _add_error(errors, data_storage_environment_field, tk._('Data storage environment need to be longer than two characters and alphabetical'))
 
-    # Check data_outputs_type, it should empty.
+    # Check data_outputs_type, it should not be empty.
     data_outputs_type = request_data['data_outputs_type']
     data_outputs_type_field = tk._('Data outputs type')
     if not data_outputs_type:
         _add_error(errors, data_outputs_type_field, tk._('Data outputs type cannot be empty'))
 
-    # Check data_outputs_description, it should empty.
+    # Check data_outputs_description, it should be empty.
     data_outputs_description = request_data['data_outputs_description']
     data_outputs_description_field = tk._('Data outputs description')
     if not data_outputs_description:
