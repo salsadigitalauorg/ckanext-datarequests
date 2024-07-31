@@ -1,19 +1,31 @@
 {% extends "datarequests/base.html" %}
 
-{% block subtitle %}{{ _('Create Data Request') }}{% endblock %}
+{% block subtitle %}{{ _('Data access request') }}{% endblock %}
 
 {% block breadcrumb_content %}
   <li>{% link_for _('Data Requests'), named_route='datarequest.index' %}</li>
-  <li class="active"><a href="">{{ _('Create Data Request') }}</a></li>
+  <li class="active"><a href="">{{ _('Create data access request') }}</a></li>
 {% endblock %}
 
 {% block primary_content_inner %}
-  <h1 class="{% block page_heading_class %}page-heading{% endblock %}">{% block page_heading %}{{ _('Create Data Request') }}{% endblock %}</h1>
-  {% snippet "datarequests/snippets/new_datarequest_form.html", data=c.datarequest, errors=c.errors, errors_summary=c.errors_summary, offering=c.offering %}
+  <h1 class="{% block page_heading_class %}page-heading{% endblock %}">{% block page_heading %}{{ _('Data access request') }}{% endblock %}</h1>
+  {% snippet "datarequests/snippets/new_datarequest_form.html", requesting_organisation_options=c.requesting_organisation_options, data=c.datarequest, errors=c.errors, errors_summary=c.errors_summary, offering=c.offering %}
+{% endblock %}
+
+{% block secondary_content_title %}
+  {{ _('Data access request') }}
 {% endblock %}
 
 {% block secondary_content_additional_info %}
-  <p>{% trans %}To create a data request, fill the form and specify a title and a description for your request. Please, be as clear as you can in order to ease the task of accomplishing your request. You can also specify an organization if your data request is closely related with it. {% endtrans %}
+  <p>
+    {% trans %}
+      To create a data access request, go to the relevant dataset and select 'Request data access', then complete the form providing clear and relevant information in the applicable fields. Adding sufficient detail limits the subsequent follow up activities needed to properly consider the request. Please be aware that the values entered will be visible to only the requestor and the users within the organisation that owns that dataset.
+    {% endtrans %}
+  </p>
+  <p>
+    {% trans %}
+      More information about the data access request process can be found at <a href="#">[placeholder for link]</a>. If you require assistance in structuring your data access request, please contact the Internal Data Catalogue management team at <a href="mailto:qgcdgdatadiscovery@chde.qld.gov.au">qgcdgdatadiscovery@chde.qld.gov.au</a>.
+    {% endtrans %}
   </p>
 {% endblock %}
 

@@ -18,6 +18,7 @@
 # along with CKAN Data Requests Extension. If not, see <http://www.gnu.org/licenses/>.
 
 from ckan import authz
+from ckan.plugins.toolkit import current_user
 from ckan.plugins.toolkit import asbool, auth_allow_anonymous_access, config, get_action
 
 from . import constants
@@ -53,8 +54,28 @@ def auth_if_creator(context, data_dict, show_function):
     return {'success': data_dict['user_id'] == context.get('auth_user_obj').id}
 
 
+def auth_if_editor_or_admin(context, data_dict, show_function):
+    # Sometimes data_dict only contains the 'id'
+    if 'user_id' not in data_dict:
+        function = get_action(show_function)
+        data_dict = function({'ignore_auth': True}, {'id': data_dict.get('id')})
+
+    is_editor_or_admin = False
+    current_user_id = current_user.id if current_user else None
+    for user in data_dict['organization']['users']:
+        if user['id'] == current_user_id and user['capacity'] in ['editor', 'admin']:
+            is_editor_or_admin = True
+            break
+
+    return {'success': is_editor_or_admin}
+
+
 def update_datarequest(context, data_dict):
-    return auth_if_creator(context, data_dict, constants.SHOW_DATAREQUEST)
+    is_current_creator = auth_if_creator(context, data_dict, constants.SHOW_DATAREQUEST)
+    if (is_current_creator['success'] is True):
+        return is_current_creator
+    
+    return auth_if_editor_or_admin(context, data_dict, constants.SHOW_DATAREQUEST)
 
 
 @auth_allow_anonymous_access

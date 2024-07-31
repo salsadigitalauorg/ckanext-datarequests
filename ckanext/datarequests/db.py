@@ -22,9 +22,11 @@ import uuid
 import logging
 
 from ckan import model
+from ckan.plugins.toolkit import current_user
 from ckanext.datarequests import constants
 
 from sqlalchemy import func, MetaData, DDL
+from sqlalchemy.sql import case
 from sqlalchemy.sql.expression import or_
 
 from . import common
@@ -51,7 +53,7 @@ class DataRequest(model.DomainObject):
         return query.filter(func.lower(cls.title) == func.lower(title)).first() is not None
 
     @classmethod
-    def get_ordered_by_date(cls, organization_id=None, user_id=None, closed=None, q=None, desc=False):
+    def get_ordered_by_date(cls, organization_id=None, user_id=None, closed=None, q=None, desc=False, status=None):
         '''Personalized query'''
         query = model.Session.query(cls).autoflush(False)
 
@@ -66,13 +68,30 @@ class DataRequest(model.DomainObject):
         if closed is not None:
             params['closed'] = closed
 
+        if status is not None:
+            params['status'] = status
+
         if q is not None:
             search_expr = '%{0}%'.format(q)
             query = query.filter(or_(cls.title.ilike(search_expr), cls.description.ilike(search_expr)))
 
+        query = query.filter_by(**params)
+
         order_by_filter = cls.open_time.desc() if desc else cls.open_time.asc()
 
-        return query.filter_by(**params).order_by(order_by_filter).all()
+        current_user_id = current_user.id if current_user else None
+        
+        if current_user_id:
+            current_user_order = case(
+                [(cls.user_id == current_user_id, 1)],
+                else_=0
+            ).label('current_user_order')
+
+            query = query.order_by(current_user_order.desc(), order_by_filter)
+        else:
+            query = query.order_by(order_by_filter)
+
+        return query.all()
 
     @classmethod
     def get_open_datarequests_number(cls):
@@ -132,11 +151,16 @@ datarequests_table = sa.Table('datarequests', model.meta.metadata,
                               sa.Column('accepted_dataset_id', sa.types.UnicodeText, primary_key=False, default=None),
                               sa.Column('close_time', sa.types.DateTime, primary_key=False, default=None),
                               sa.Column('closed', sa.types.Boolean, primary_key=False, default=False),
-                              sa.Column('close_circumstance', sa.types.Unicode(constants.CLOSE_CIRCUMSTANCE_MAX_LENGTH), primary_key=False, default=u'')
-                              if closing_circumstances_enabled else None,
-                              sa.Column('approx_publishing_date', sa.types.DateTime, primary_key=False, default=None)
-                              if closing_circumstances_enabled else None,
-                              extend_existing=True,
+                              sa.Column('close_circumstance', sa.types.Unicode(constants.CLOSE_CIRCUMSTANCE_MAX_LENGTH), primary_key=False, default=u'') if closing_circumstances_enabled else None,
+                              sa.Column('approx_publishing_date', sa.types.DateTime, primary_key=False, default=None) if closing_circumstances_enabled else None,
+                              sa.Column('data_use_type', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
+                              sa.Column('who_will_access_this_data', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
+                              sa.Column('requesting_organisation', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
+                              sa.Column('data_storage_environment', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
+                              sa.Column('data_outputs_type', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
+                              sa.Column('data_outputs_description', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
+                              sa.Column('status', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u'Assigned'),
+                              extend_existing=True
                               )
 
 model.meta.mapper(DataRequest, datarequests_table)
@@ -198,3 +222,32 @@ def update_db(deprecated_model=None):
             if 'approx_publishing_date' not in meta.tables['datarequests'].columns:
                 log.info("DataRequests-UpdateDB: 'approx_publishing_date' field does not exist, adding...")
                 DDL('ALTER TABLE "datarequests" ADD COLUMN "approx_publishing_date" timestamp NULL').execute(model.Session.get_bind())
+
+    if 'datarequests' in meta.tables:
+        if 'data_use_type' not in meta.tables['datarequests'].columns:
+            log.info("DataRequests-UpdateDB: 'data_use_type' field does not exist, adding...")
+            DDL('ALTER TABLE "datarequests" ADD COLUMN "data_use_type" varchar(255) NULL').execute(model.Session.get_bind())
+
+        if 'who_will_access_this_data' not in meta.tables['datarequests'].columns:
+            log.info("DataRequests-UpdateDB: 'who_will_access_this_data' field does not exist, adding...")
+            DDL('ALTER TABLE "datarequests" ADD COLUMN "who_will_access_this_data" character varying(1000) NULL').execute(model.Session.get_bind())
+
+        if 'requesting_organisation' not in meta.tables['datarequests'].columns:
+            log.info("DataRequests-UpdateDB: 'requesting_organisation' field does not exist, adding...")
+            DDL('ALTER TABLE "datarequests" ADD COLUMN "requesting_organisation" text COLLATE pg_catalog."default";').execute(model.Session.get_bind())
+
+        if 'data_storage_environment' not in meta.tables['datarequests'].columns:
+            log.info("DataRequests-UpdateDB: 'data_storage_environment' field does not exist, adding...")
+            DDL('ALTER TABLE "datarequests" ADD COLUMN "data_storage_environment" character varying(1000) NULL').execute(model.Session.get_bind())
+
+        if 'data_outputs_type' not in meta.tables['datarequests'].columns:
+            log.info("DataRequests-UpdateDB: 'data_outputs_type' field does not exist, adding...")
+            DDL('ALTER TABLE "datarequests" ADD COLUMN "data_outputs_type" varchar(255) NULL').execute(model.Session.get_bind())
+
+        if 'data_outputs_description' not in meta.tables['datarequests'].columns:
+            log.info("DataRequests-UpdateDB: 'data_outputs_description' field does not exist, adding...")
+            DDL('ALTER TABLE "datarequests" ADD COLUMN "data_outputs_description" character varying(1000) NULL').execute(model.Session.get_bind())
+
+        if 'status' not in meta.tables['datarequests'].columns:
+            log.info("DataRequests-UpdateDB: 'status' field does not exist, adding...")
+            DDL('ALTER TABLE "datarequests" ADD COLUMN "status" varchar(255) NULL').execute(model.Session.get_bind())

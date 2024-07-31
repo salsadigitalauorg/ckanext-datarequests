@@ -94,7 +94,14 @@ def _dictize_datarequest(datarequest):
         'user': _get_user(datarequest.user_id),
         'organization': None,
         'accepted_dataset': None,
-        'followers': 0
+        'followers': 0,
+        'data_use_type': datarequest.data_use_type,
+        'who_will_access_this_data': datarequest.who_will_access_this_data,
+        'requesting_organisation': datarequest.requesting_organisation,
+        'data_storage_environment': datarequest.data_storage_environment,
+        'data_outputs_type': datarequest.data_outputs_type,
+        'data_outputs_description': datarequest.data_outputs_description,
+        'status': datarequest.status
     }
 
     if datarequest.organization_id:
@@ -119,6 +126,14 @@ def _undictize_datarequest_basic(datarequest, data_dict):
     organization = data_dict['organization_id']
     datarequest.organization_id = organization if organization else None
     _undictize_datarequest_closing_circumstances(datarequest, data_dict)
+
+    datarequest.data_use_type = data_dict['data_use_type']
+    datarequest.who_will_access_this_data = data_dict['who_will_access_this_data']
+    datarequest.requesting_organisation = data_dict['requesting_organisation']
+    datarequest.data_storage_environment = data_dict['data_storage_environment']
+    datarequest.data_outputs_type = data_dict['data_outputs_type']
+    datarequest.data_outputs_description = data_dict['data_outputs_description']
+    datarequest.status = data_dict['status']
 
 
 def _undictize_datarequest_closing_circumstances(datarequest, data_dict):
@@ -460,8 +475,8 @@ def list_datarequests(context, data_dict):
         # Get user ID (user name is received sometimes)
         user_id = user_show({'ignore_auth': True}, {'id': user_id}).get('id')
 
-    # Filter by state
-    closed = data_dict.get('closed', None)
+    # Filter by status
+    status = data_dict.get('status', None)
 
     # Free text filter
     q = data_dict.get('q', None)
@@ -475,7 +490,7 @@ def list_datarequests(context, data_dict):
 
     # Call the function
     db_datarequests = db.DataRequest.get_ordered_by_date(organization_id=organization_id,
-                                                         user_id=user_id, closed=closed,
+                                                         user_id=user_id, status=status,
                                                          q=q, desc=desc)
 
     # Dictize the results
@@ -487,18 +502,22 @@ def list_datarequests(context, data_dict):
 
     # Facets
     no_processed_organization_facet = {}
-    CLOSED = 'Closed'
-    OPEN = 'Open'
-    no_processed_state_facet = {CLOSED: 0, OPEN: 0}
+    no_processed_status_facet = {
+        'Assigned': 0,
+        'Processing': 0,
+        'Finalised - Approved': 0,
+        'Finalised - Not Approved': 0,
+        'Assign to Internal Data Catalogue Support': 0
+    }
     for data_req in db_datarequests:
-        if data_req.organization_id:
-            # Facets
-            if data_req.organization_id in no_processed_organization_facet:
-                no_processed_organization_facet[data_req.organization_id] += 1
-            else:
-                no_processed_organization_facet[data_req.organization_id] = 1
+        organization_id = data_req.organization_id
+        status = data_req.status
 
-        no_processed_state_facet[CLOSED if data_req.closed else OPEN] += 1
+        if organization_id:
+            no_processed_organization_facet[organization_id] = no_processed_organization_facet.get(organization_id, 0) + 1
+
+        if status in no_processed_status_facet:
+            no_processed_status_facet[status] += 1
 
     # Format facets
     organization_facet = []
@@ -513,13 +532,13 @@ def list_datarequests(context, data_dict):
         except Exception:
             pass
 
-    state_facet = []
-    for state in no_processed_state_facet:
-        if no_processed_state_facet[state]:
-            state_facet.append({
-                'name': state.lower(),
-                'display_name': tk._(state),
-                'count': no_processed_state_facet[state]
+    status_facet = []
+    for status in no_processed_status_facet:
+        if no_processed_status_facet[status]:
+            status_facet.append({
+                'name': status,
+                'display_name': tk._(status),
+                'count': no_processed_status_facet[status]
             })
 
     result = {
@@ -532,8 +551,8 @@ def list_datarequests(context, data_dict):
     if organization_facet:
         result['facets']['organization'] = {'items': organization_facet}
 
-    if state_facet:
-        result['facets']['state'] = {'items': state_facet}
+    if status_facet:
+        result['facets']['status'] = {'items': status_facet}
 
     return result
 

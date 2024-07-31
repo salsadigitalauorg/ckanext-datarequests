@@ -10,7 +10,7 @@ from six.moves.urllib.parse import urlencode
 from ckan import model
 from ckan.lib import helpers, captcha
 from ckan.plugins import toolkit as tk
-from ckan.plugins.toolkit import c, h, request, _
+from ckan.plugins.toolkit import c, h, request, _, current_user
 
 from ckanext.datarequests import constants, request_helpers
 
@@ -59,14 +59,14 @@ def _get_context():
 
 
 def _show_index(user_id, organization_id, include_organization_facet, url_func, file_to_render, extra_vars=None):
-    def pager_url(state=None, sort=None, q=None, page=None):
+    def pager_url(status=None, sort=None, q=None, page=None):
         params = []
 
         if q:
             params.append(('q', q))
 
-        if state is not None:
-            params.append(('state', state))
+        if status is not None:
+            params.append(('status', status))
 
         params.append(('sort', sort))
         params.append(('page', page))
@@ -80,9 +80,9 @@ def _show_index(user_id, organization_id, include_organization_facet, url_func, 
         offset = (page - 1) * constants.DATAREQUESTS_PER_PAGE
         data_dict = {'offset': offset, 'limit': limit}
 
-        state = request_helpers.get_first_query_param('state', None)
-        if state:
-            data_dict['closed'] = True if state == 'closed' else False
+        status = request_helpers.get_first_query_param('status', None)
+        if status:
+            data_dict['status'] = status
 
         q = request_helpers.get_first_query_param('q', '')
         if q:
@@ -106,19 +106,19 @@ def _show_index(user_id, organization_id, include_organization_facet, url_func, 
         c.sort = sort
         c.q = q
         c.organization = organization_id
-        c.state = state
+        c.status = status
         c.datarequest_count = datarequests_list['count']
         c.datarequests = datarequests_list['result']
         c.search_facets = datarequests_list['facets']
         c.page = helpers.Page(
             collection=datarequests_list['result'],
             page=page,
-            url=functools.partial(pager_url, state, sort),
+            url=functools.partial(pager_url, status, sort),
             item_count=datarequests_list['count'],
             items_per_page=limit
         )
         c.facet_titles = {
-            'state': tk._('State'),
+            'status': tk._('Status'),
         }
 
         # Organization facet cannot be shown when the user is viewing an org
@@ -131,7 +131,7 @@ def _show_index(user_id, organization_id, include_organization_facet, url_func, 
         extra_vars['sort'] = c.sort
         extra_vars['q'] = c.q
         extra_vars['organization'] = c.organization
-        extra_vars['state'] = c.state
+        extra_vars['status'] = c.status
         extra_vars['datarequest_count'] = c.datarequest_count
         extra_vars['datarequests'] = c.datarequests
         extra_vars['search_facets'] = c.search_facets
@@ -165,6 +165,14 @@ def _process_post(action, context):
         data_dict['description'] = request_helpers.get_first_post_param('description', '')
         data_dict['organization_id'] = request_helpers.get_first_post_param('organization_id', '')
 
+        data_dict['data_use_type'] = request_helpers.get_first_post_param('data_use_type', '')
+        data_dict['who_will_access_this_data'] = request_helpers.get_first_post_param('who_will_access_this_data', '')
+        data_dict['requesting_organisation'] = request_helpers.get_first_post_param('requesting_organisation', '')
+        data_dict['data_storage_environment'] = request_helpers.get_first_post_param('data_storage_environment', '')
+        data_dict['data_outputs_type'] = request_helpers.get_first_post_param('data_outputs_type', '')
+        data_dict['data_outputs_description'] = request_helpers.get_first_post_param('data_outputs_description', '')
+        data_dict['status'] = request_helpers.get_first_post_param('status', '')
+
         if action == constants.UPDATE_DATAREQUEST:
             data_dict['id'] = request_helpers.get_first_post_param('id', '')
 
@@ -180,7 +188,14 @@ def _process_post(action, context):
                 'id': data_dict.get('id', ''),
                 'title': data_dict.get('title', ''),
                 'description': data_dict.get('description', ''),
-                'organization_id': data_dict.get('organization_id', '')
+                'organization_id': data_dict.get('organization_id', ''),
+                'data_use_type': data_dict.get('data_use_type', ''),
+                'who_will_access_this_data': data_dict.get('who_will_access_this_data', ''),
+                'requesting_organisation': data_dict.get('requesting_organisation', ''),
+                'data_storage_environment': data_dict.get('data_storage_environment', ''),
+                'data_outputs_type': data_dict.get('data_outputs_type', ''),
+                'data_outputs_description': data_dict.get('data_outputs_description', ''),
+                'status': data_dict.get('status', '')
             }
             c.errors = e.error_dict
             c.errors_summary = _get_errors_summary(c.errors)
@@ -192,7 +207,14 @@ def _process_post(action, context):
                 'id': data_dict.get('id', ''),
                 'title': data_dict.get('title', ''),
                 'description': data_dict.get('description', ''),
-                'organization_id': data_dict.get('organization_id', '')
+                'organization_id': data_dict.get('organization_id', ''),
+                'data_use_type': data_dict.get('data_use_type', ''),
+                'who_will_access_this_data': data_dict.get('who_will_access_this_data', ''),
+                'requesting_organisation': data_dict.get('requesting_organisation', ''),
+                'data_storage_environment': data_dict.get('data_storage_environment', ''),
+                'data_outputs_type': data_dict.get('data_outputs_type', ''),
+                'data_outputs_description': data_dict.get('data_outputs_description', ''),
+                'status': data_dict.get('status', '')
             }
 
 
@@ -203,11 +225,23 @@ def new():
     c.datarequest = {}
     c.errors = {}
     c.errors_summary = {}
+    c.requesting_organisation_options = []
 
     # Check access
     try:
         tk.check_access(constants.CREATE_DATAREQUEST, context, None)
         post_result = _process_post(constants.CREATE_DATAREQUEST, context)
+
+        dataset_id = request.args.get('id')
+        if dataset_id:
+            dataset = tk.get_action('package_show')(context, {'id': dataset_id})
+            c.datarequest['title'] = dataset.get('title', '')
+            c.datarequest['organization_id'] = dataset.get('organization', {}).get('id')
+
+        # Get organizations, with empty value for first option
+        organizations = h.organizations_available('read')
+        c.requesting_organisation_options = [{'value': '', 'text': ''}] + [{'value': org['id'], 'text': org['name']} for org in organizations]
+
         return post_result or tk.render('datarequests/new.html')
     except tk.NotAuthorized as e:
         log.warning(e)
@@ -241,12 +275,26 @@ def update(id):
     c.datarequest = {}
     c.errors = {}
     c.errors_summary = {}
+    c.requesting_organisation_options = []
+    c.access_to_status_field = True if current_user.sysadmin else False
 
     try:
         tk.check_access(constants.UPDATE_DATAREQUEST, context, data_dict)
         c.datarequest = tk.get_action(constants.SHOW_DATAREQUEST)(context, data_dict)
         c.original_title = c.datarequest.get('title')
         post_result = _process_post(constants.UPDATE_DATAREQUEST, context)
+
+        # Get organizations, with empty value for first option
+        organizations = h.organizations_available('read')
+        c.requesting_organisation_options = [{'value': '', 'text': ''}] + [{'value': org['id'], 'text': org['name']} for org in organizations]
+
+        current_user_id = current_user.id if current_user else None
+        if c.datarequest.get('organization') is not None:
+            for user in c.datarequest['organization'].get('users', []):
+                if user['id'] == current_user_id and user['capacity'] in ['editor', 'admin']:
+                    c.access_to_status_field = True
+                    break
+
         return post_result or tk.render('datarequests/edit.html')
     except tk.ObjectNotFound as e:
         log.warning(e)
