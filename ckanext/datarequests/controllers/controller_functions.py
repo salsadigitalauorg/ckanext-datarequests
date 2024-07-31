@@ -10,7 +10,7 @@ from six.moves.urllib.parse import urlencode
 from ckan import model
 from ckan.lib import helpers, captcha
 from ckan.plugins import toolkit as tk
-from ckan.plugins.toolkit import c, h, request, _
+from ckan.plugins.toolkit import c, h, request, _, current_user
 
 from ckanext.datarequests import constants, request_helpers
 
@@ -235,8 +235,8 @@ def new():
         dataset_id = request.args.get('id')
         if dataset_id:
             dataset = tk.get_action('package_show')(context, {'id': dataset_id})
-            c.datarequest['title'] = dataset['title']
-            c.datarequest['organization_id'] = dataset['organization']['id']
+            c.datarequest['title'] = dataset.get('title', '')
+            c.datarequest['organization_id'] = dataset.get('organization', {}).get('id')
 
         # Get organizations, with empty value for first option
         organizations = h.organizations_available('read')
@@ -276,7 +276,7 @@ def update(id):
     c.errors = {}
     c.errors_summary = {}
     c.requesting_organisation_options = []
-    c.access_to_status_field = True if c.userobj.sysadmin else False
+    c.access_to_status_field = True if current_user.sysadmin else False
 
     try:
         tk.check_access(constants.UPDATE_DATAREQUEST, context, data_dict)
@@ -288,9 +288,9 @@ def update(id):
         organizations = h.organizations_available('read')
         c.requesting_organisation_options = [{'value': '', 'text': ''}] + [{'value': org['id'], 'text': org['name']} for org in organizations]
 
-        current_user_id = c.userobj.id if c.userobj else None
-        if c.datarequest['organization'] is not None:
-            for user in c.datarequest['organization']['users']:
+        current_user_id = current_user.id if current_user else None
+        if c.datarequest.get('organization') is not None:
+            for user in c.datarequest['organization'].get('users', []):
                 if user['id'] == current_user_id and user['capacity'] in ['editor', 'admin']:
                     c.access_to_status_field = True
                     break
