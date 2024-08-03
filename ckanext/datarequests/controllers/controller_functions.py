@@ -171,7 +171,7 @@ def _process_post(action, context):
         data_dict['data_storage_environment'] = request_helpers.get_first_post_param('data_storage_environment', '')
         data_dict['data_outputs_type'] = request_helpers.get_first_post_param('data_outputs_type', '')
         data_dict['data_outputs_description'] = request_helpers.get_first_post_param('data_outputs_description', '')
-        data_dict['status'] = request_helpers.get_first_post_param('status', '')
+        data_dict['status'] = request_helpers.get_first_post_param('status', 'Assigned')
 
         if action == constants.UPDATE_DATAREQUEST:
             data_dict['id'] = request_helpers.get_first_post_param('id', '')
