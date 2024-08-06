@@ -20,7 +20,7 @@
 import datetime
 
 import ckan.plugins.toolkit as tk
-from ckanext.datarequests import db, common, constants
+from ckanext.datarequests import common, constants
 
 
 def profanity_check_enabled():
@@ -60,7 +60,7 @@ def validate_datarequest(context, request_data):
 
     if len(description) > constants.DESCRIPTION_MAX_LENGTH:
         _add_error(errors, description_field, tk._('Purpose of data use must be a maximum of %d characters long') % constants.DESCRIPTION_MAX_LENGTH)
-    
+
     if description and not _has_alpha_chars(description, 2):
         _add_error(errors, description_field, tk._('Purpose of data use need to be longer than two characters and alphabetical'))
 
@@ -89,7 +89,7 @@ def validate_datarequest(context, request_data):
     who_will_access_this_data_field = tk._('Who will access this data')
     if not who_will_access_this_data:
         _add_error(errors, who_will_access_this_data_field, tk._('Who will access this data cannot be empty'))
-    
+
     if who_will_access_this_data and not _has_alpha_chars(who_will_access_this_data, 2):
         _add_error(errors, who_will_access_this_data_field, tk._('Who will access this data need to be longer than two characters and alphabetical'))
 
@@ -98,7 +98,7 @@ def validate_datarequest(context, request_data):
     requesting_organisation_field = tk._('Requesting organisation')
     if not requesting_organisation:
         _add_error(errors, requesting_organisation_field, tk._('Requesting organisation cannot be empty'))
-    
+
     # Check requesting_organisation is a valid organisation in database.
     if requesting_organisation:
         try:

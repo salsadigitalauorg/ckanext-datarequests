@@ -74,7 +74,7 @@ def update_datarequest(context, data_dict):
     is_current_creator = auth_if_creator(context, data_dict, constants.SHOW_DATAREQUEST)
     if (is_current_creator['success'] is True):
         return is_current_creator
-    
+
     return auth_if_editor_or_admin(context, data_dict, constants.SHOW_DATAREQUEST)
 
 

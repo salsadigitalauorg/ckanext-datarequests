@@ -80,7 +80,7 @@ class DataRequest(model.DomainObject):
         order_by_filter = cls.open_time.desc() if desc else cls.open_time.asc()
 
         current_user_id = current_user.id if current_user else None
-        
+
         if current_user_id:
             current_user_order = case(
                 [(cls.user_id == current_user_id, 1)],
