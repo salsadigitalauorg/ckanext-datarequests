@@ -20,7 +20,7 @@
 import datetime
 
 import ckan.plugins.toolkit as tk
-from ckanext.datarequests import db, common, constants  # noqa: F401
+from ckanext.datarequests import common, constants
 
 
 def profanity_check_enabled():
