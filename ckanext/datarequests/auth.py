@@ -18,10 +18,11 @@
 # along with CKAN Data Requests Extension. If not, see <http://www.gnu.org/licenses/>.
 
 from ckan import authz
-from ckan.plugins.toolkit import current_user
+from ckan.plugins.toolkit import current_user, h
 from ckan.plugins.toolkit import asbool, auth_allow_anonymous_access, config, get_action
 
-from . import constants
+from . import constants, db
+from .actions import _dictize_datarequest
 
 
 def create_datarequest(context, data_dict):
@@ -42,6 +43,16 @@ def _is_any_group_member(context):
 
 @auth_allow_anonymous_access
 def show_datarequest(context, data_dict):
+    # Sysadmins can see all data requests, other users can only see their own organization's data requests.
+    if not current_user.sysadmin:
+        result = db.DataRequest.get(id=data_dict.get('id'))
+        data_req = result[0]
+        data_dict = _dictize_datarequest(data_req)
+
+        current_user_orgs = [org['id'] for org in h.organizations_available('read')] or []
+        if data_dict.get('requesting_organisation', None) not in current_user_orgs:
+            return {'success': False}
+
     return {'success': True}
 
 

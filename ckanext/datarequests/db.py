@@ -22,7 +22,7 @@ import uuid
 import logging
 
 from ckan import model
-from ckan.plugins.toolkit import current_user
+from ckan.plugins.toolkit import current_user, h
 from ckanext.datarequests import constants
 
 from sqlalchemy import func, MetaData, DDL
@@ -79,9 +79,16 @@ class DataRequest(model.DomainObject):
 
         order_by_filter = cls.open_time.desc() if desc else cls.open_time.asc()
 
-        current_user_id = current_user.id if current_user else None
+        # For sysadmins, we show all the data requests.
+        restricted_org_id = None
+        if not current_user.sysadmin and organization_id is None:
+            current_user_orgs = h.organizations_available('read') or []
+            restricted_org_id = [org['id'] for org in current_user_orgs]
+            query = query.filter(cls.requesting_organisation.in_(restricted_org_id))
 
+        current_user_id = current_user.id if current_user else None
         if current_user_id:
+            # Pinned the datarequest to the top of the list if current user is the author.
             current_user_order = case(
                 [(cls.user_id == current_user_id, 1)],
                 else_=0
