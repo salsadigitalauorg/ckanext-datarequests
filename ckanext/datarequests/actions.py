@@ -25,7 +25,7 @@ try:
 except ImportError:
     from cgi import escape
 
-from ckan import authz, model
+from ckan import authz
 from ckan.lib import mailer
 from ckan.lib.redis import connect_to_redis
 from ckan.plugins import toolkit as tk
