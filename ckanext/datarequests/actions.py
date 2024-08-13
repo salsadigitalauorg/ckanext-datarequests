@@ -101,7 +101,8 @@ def _dictize_datarequest(datarequest):
         'data_storage_environment': datarequest.data_storage_environment,
         'data_outputs_type': datarequest.data_outputs_type,
         'data_outputs_description': datarequest.data_outputs_description,
-        'status': datarequest.status
+        'status': datarequest.status,
+        'requested_dataset': datarequest.requested_dataset,
     }
 
     if datarequest.organization_id:
@@ -134,6 +135,7 @@ def _undictize_datarequest_basic(datarequest, data_dict):
     datarequest.data_outputs_type = data_dict['data_outputs_type']
     datarequest.data_outputs_description = data_dict['data_outputs_description']
     datarequest.status = data_dict['status']
+    datarequest.requested_dataset = data_dict['requested_dataset']
 
 
 def _undictize_datarequest_closing_circumstances(datarequest, data_dict):
@@ -180,13 +182,34 @@ def _get_datarequest_involved_users(context, datarequest_dict):
     return users
 
 
-def _send_mail(user_ids, action_type, datarequest, job_title=None):
-    for user_id in user_ids:
+def _send_mail(action_type, datarequest, job_title=None):
+    user_list = [{
+        'email': config.get('ckanext.datarequests.internal_data_catalogue_support_team_email'),
+        'name': config.get('ckanext.datarequests.internal_data_catalogue_support_team_name')
+    }]
+    if action_type == 'new_datarequest':
+        dataset = _get_package(datarequest.get('requested_dataset'))
+        dataset_poi_email = dataset.get('point_of_contact_email') if dataset else None
+        dataset_poi_name = dataset.get('point_of_contact') if dataset else None
+        if dataset_poi_email:
+            user_list.append({
+                'email': dataset_poi_email,
+                'name': dataset_poi_name
+            })
+    elif action_type == 'update_datarequest':
+        requester_email = datarequest['user']['email']
+        requester_name = datarequest['user']['name']
+        if requester_email:
+            user_list.append({
+                'email': requester_email,
+                'name': requester_name
+            })
+
+    for user in user_list:
         try:
-            user_data = model.User.get(user_id)
             extra_vars = {
                 'datarequest': datarequest,
-                'user': user_data,
+                'user': user,
                 'site_title': config.get('ckan.site_title'),
                 'site_url': config.get('ckan.site_url')
             }
@@ -194,9 +217,9 @@ def _send_mail(user_ids, action_type, datarequest, job_title=None):
             subject = tk.render('emails/subjects/{0}.txt'.format(action_type), extra_vars)
             body = tk.render('emails/bodies/{0}.txt'.format(action_type), extra_vars)
 
-            tk.enqueue_job(mailer.mail_user, [user_data, subject, body], title=job_title)
+            tk.enqueue_job(mailer.mail_recipient, [user['name'], user['email'], subject, body], title=job_title)
         except Exception:
-            log.exception("Error sending notification to {0}".format(user_id))
+            log.exception("Error sending notification to {0}".format(user['email']))
 
 
 def _get_admin_users_from_organisation(org_dict):
@@ -289,11 +312,8 @@ def create_datarequest(context, data_dict):
 
     datarequest_dict = _dictize_datarequest(data_req)
 
-    org = datarequest_dict.get('organization')
-    if org:
-        users = _get_admin_users_from_organisation(org)
-        users.discard(creator.id)
-        _send_mail(users, 'new_datarequest', datarequest_dict, 'Data Request Created Email')
+    # When a data request is created, an email is sent to the Point Of Contact of the dataset and Internal Data Catalogue Support team.
+    _send_mail('new_datarequest', datarequest_dict, 'Data Request Created Email')
 
     return datarequest_dict
 
@@ -386,32 +406,18 @@ def update_datarequest(context, data_dict):
     # Validate data
     validator.validate_datarequest(context, data_dict)
 
-    # Determine whether organisation has changed
-    organisation_updated = data_req.organization_id != data_dict['organization_id']
-    if organisation_updated:
-        unassigned_organisation_id = data_req.organization_id
-
     # Set the data provided by the user in the data_red
+    current_status = data_req.status
     _undictize_datarequest_basic(data_req, data_dict)
+    new_status = data_req.status
 
     session.add(data_req)
     session.commit()
 
     datarequest_dict = _dictize_datarequest(data_req)
 
-    if organisation_updated and common.get_config_bool_value('ckanext.datarequests.notify_on_update'):
-        org = datarequest_dict['organization']
-        # Email Admin users of the assigned organisation
-        if org:
-            users = _get_admin_users_from_organisation(org)
-            users.discard(context['auth_user_obj'].id)
-            _send_mail(users, 'new_datarequest_organisation',
-                       datarequest_dict, 'Data Request Assigned Email')
-        # Email Admin users of unassigned organisation
-        users = _get_admin_users_from_organisation(_get_organization(unassigned_organisation_id))
-        users.discard(context['auth_user_obj'].id)
-        _send_mail(users, 'unassigned_datarequest_organisation',
-                   datarequest_dict, 'Data Request Unassigned Email')
+    if current_status != new_status:
+        _send_mail('update_datarequest', datarequest_dict, 'Data Request Status Change Email')
 
     return datarequest_dict
 
@@ -648,11 +654,6 @@ def close_datarequest(context, data_dict):
 
     datarequest_dict = _dictize_datarequest(data_req)
 
-    # Mailing
-    users = _get_datarequest_involved_users(context, datarequest_dict)
-    _send_mail(users, 'close_datarequest',
-               datarequest_dict, 'Data Request Closed Send Email')
-
     return datarequest_dict
 
 
@@ -685,7 +686,7 @@ def comment_datarequest(context, data_dict):
     tk.check_access(constants.COMMENT_DATAREQUEST, context, data_dict)
 
     # Validate comment
-    datarequest_dict = validator.validate_comment(context, data_dict)
+    validator.validate_comment(context, data_dict)
 
     # Store the data
     comment = db.Comment()
@@ -695,10 +696,6 @@ def comment_datarequest(context, data_dict):
 
     session.add(comment)
     session.commit()
-
-    # Mailing
-    users = _get_datarequest_involved_users(context, datarequest_dict)
-    _send_mail(users, 'new_comment', datarequest_dict)
 
     return _dictize_comment(comment)
 

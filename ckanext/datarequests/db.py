@@ -160,6 +160,7 @@ datarequests_table = sa.Table('datarequests', model.meta.metadata,
                               sa.Column('data_outputs_type', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
                               sa.Column('data_outputs_description', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
                               sa.Column('status', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u'Assigned'),
+                              sa.Column('requested_dataset', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
                               extend_existing=True
                               )
 
@@ -251,3 +252,7 @@ def update_db(deprecated_model=None):
         if 'status' not in meta.tables['datarequests'].columns:
             log.info("DataRequests-UpdateDB: 'status' field does not exist, adding...")
             DDL('ALTER TABLE "datarequests" ADD COLUMN "status" varchar(255) NULL').execute(model.Session.get_bind())
+
+        if 'requested_dataset' not in meta.tables['datarequests'].columns:
+            log.info("DataRequests-UpdateDB: 'requested_dataset' field does not exist, adding...")
+            DDL('ALTER TABLE "datarequests" ADD COLUMN "requested_dataset" text COLLATE pg_catalog."default";').execute(model.Session.get_bind())

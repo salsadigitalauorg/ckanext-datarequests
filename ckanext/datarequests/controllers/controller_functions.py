@@ -172,6 +172,7 @@ def _process_post(action, context):
         data_dict['data_outputs_type'] = request_helpers.get_first_post_param('data_outputs_type', '')
         data_dict['data_outputs_description'] = request_helpers.get_first_post_param('data_outputs_description', '')
         data_dict['status'] = request_helpers.get_first_post_param('status', 'Assigned')
+        data_dict['requested_dataset'] = request_helpers.get_first_post_param('requested_dataset', None)
 
         if action == constants.UPDATE_DATAREQUEST:
             data_dict['id'] = request_helpers.get_first_post_param('id', '')
@@ -195,7 +196,8 @@ def _process_post(action, context):
                 'data_storage_environment': data_dict.get('data_storage_environment', ''),
                 'data_outputs_type': data_dict.get('data_outputs_type', ''),
                 'data_outputs_description': data_dict.get('data_outputs_description', ''),
-                'status': data_dict.get('status', '')
+                'status': data_dict.get('status', ''),
+                'requested_dataset': data_dict.get('requested_dataset', '')
             }
             c.errors = e.error_dict
             c.errors_summary = _get_errors_summary(c.errors)
@@ -214,7 +216,8 @@ def _process_post(action, context):
                 'data_storage_environment': data_dict.get('data_storage_environment', ''),
                 'data_outputs_type': data_dict.get('data_outputs_type', ''),
                 'data_outputs_description': data_dict.get('data_outputs_description', ''),
-                'status': data_dict.get('status', '')
+                'status': data_dict.get('status', ''),
+                'requested_dataset': data_dict.get('requested_dataset', '')
             }
 
 
@@ -236,6 +239,7 @@ def new():
         if dataset_id:
             dataset = tk.get_action('package_show')(context, {'id': dataset_id})
             c.datarequest['title'] = dataset.get('title', '')
+            c.datarequest['requested_dataset'] = dataset.get('id', '')
             c.datarequest['organization_id'] = dataset.get('organization', {}).get('id')
 
         # Get organizations, with empty value for first option

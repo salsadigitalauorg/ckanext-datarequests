@@ -12,6 +12,7 @@
 {% set data_outputs_type = data.get('data_outputs_type', '') %}
 {% set data_outputs_description = data.get('data_outputs_description', '') %}
 {% set status = data.get('status', '') %}
+{% set requested_dataset = data.get('requested_dataset', '') %}
 
 {# This provides a full page that renders a form for publishing a dataset. It can
 then itself be extended to add/remove blocks of functionality. #}
@@ -20,6 +21,10 @@ then itself be extended to add/remove blocks of functionality. #}
   <input type="hidden" id="id" name="id" value="{{ data.get('id', '') }}" />
 
   {% block errors %}{{ form.errors(errors_summary) }}{% endblock %}
+
+  {% block offering_requested_dataset %}
+    {{ form.hidden('requested_dataset', value=requested_dataset) }}
+  {% endblock %}
 
   {% block offering_organization_id %}
     {{ form.hidden('organization_id', value=organization_id) }}
