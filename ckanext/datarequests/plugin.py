@@ -144,7 +144,9 @@ class DataRequestsPlugin(MixinPlugin, p.SingletonPlugin):
             'is_following_datarequest': helpers.is_following_datarequest,
             'is_description_required': self.is_description_required,
             'closing_circumstances_enabled': self.closing_circumstances_enabled,
-            'get_closing_circumstances': helpers.get_closing_circumstances
+            'get_closing_circumstances': helpers.get_closing_circumstances,
+            'get_status_list': helpers.get_status_list,
+            'get_status_label': helpers.get_status_label,
         }
 
     ######################################################################

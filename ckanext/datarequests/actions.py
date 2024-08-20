@@ -161,28 +161,23 @@ def _undictize_comment_basic(comment, data_dict):
     comment.datarequest_id = data_dict.get('datarequest_id', '')
 
 
-def _get_datarequest_involved_users(context, datarequest_dict):
-
+def _get_datarequest_followers(context, datarequest_dict):
     datarequest_id = datarequest_dict['id']
-    new_context = {'ignore_auth': True, 'model': context['model']}
 
-    # Creator + Followers + People who has commented + Organization Staff
-    users = set()
-    users.add(datarequest_dict['user_id'])
-    users.update([follower.user_id for follower in db.DataRequestFollower.get(datarequest_id=datarequest_id)])
-    users.update([comment['user_id'] for comment in list_datarequest_comments(new_context, {'datarequest_id': datarequest_id})])
-
-    org = datarequest_dict.get('organization')
-    if org:
-        users.update(_get_admin_users_from_organisation(org))
-
-    # Notifications are not sent to the user that performs the action
-    users.discard(context['auth_user_obj'].id)
+    users = []
+    followers = db.DataRequestFollower.get(datarequest_id=datarequest_id)
+    for follower in followers:
+        if follower.user_id != context['auth_user_obj'].id:
+            follower.user = _get_user(follower.user_id)
+            users.append({
+                'email': follower.user['email'],
+                'name': follower.user['name']
+            })
 
     return users
 
 
-def _send_mail(action_type, datarequest, job_title=None):
+def _send_mail(action_type, datarequest, job_title=None, context=None):
     user_list = [{
         'email': config.get('ckanext.datarequests.internal_data_catalogue_support_team_email'),
         'name': config.get('ckanext.datarequests.internal_data_catalogue_support_team_name')
@@ -204,6 +199,9 @@ def _send_mail(action_type, datarequest, job_title=None):
                 'email': requester_email,
                 'name': requester_name
             })
+        
+        followers = _get_datarequest_followers(context, datarequest)
+        user_list.extend(followers)
 
     for user in user_list:
         try:
@@ -313,7 +311,7 @@ def create_datarequest(context, data_dict):
     datarequest_dict = _dictize_datarequest(data_req)
 
     # When a data request is created, an email is sent to the Point Of Contact of the dataset and Internal Data Catalogue Support team.
-    _send_mail('new_datarequest', datarequest_dict, 'Data Request Created Email')
+    _send_mail('new_datarequest', datarequest_dict, 'Data Request Created Email', context)
 
     return datarequest_dict
 
@@ -417,7 +415,7 @@ def update_datarequest(context, data_dict):
     datarequest_dict = _dictize_datarequest(data_req)
 
     if current_status != new_status:
-        _send_mail('update_datarequest', datarequest_dict, 'Data Request Status Change Email')
+        _send_mail('update_datarequest', datarequest_dict, 'Data Request Status Change Email', context)
 
     return datarequest_dict
 

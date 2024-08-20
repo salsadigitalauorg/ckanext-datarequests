@@ -86,13 +86,7 @@ then itself be extended to add/remove blocks of functionality. #}
 
   {% block offering_status %}
     {% if show_status %}
-      {{ form.select('status', id='field-status', label=_('Status'), options=[
-          {'value': 'Assigned', 'text': _('Assigned')},
-          {'value': 'Processing', 'text': _('Processing')},
-          {'value': 'Finalised - Approved', 'text': _('Finalised - Approved')},
-          {'value': 'Finalised - Not Approved', 'text': _('Finalised - Not Approved')},
-          {'value': 'Assign to Internal Data Catalogue Support', 'text': _('Assign to Internal Data Catalogue Support')}
-        ], selected=status if status else '', error=errors['Status'], is_required=True) }}
+      {{ form.select('status', id='field-status', label=_('Status'), options=h.get_status_list(), selected=status if status else '', error=errors['Status'], is_required=True) }}
     {% endif %}
   {% endblock %}
 
