@@ -199,7 +199,7 @@ def _send_mail(action_type, datarequest, job_title=None, context=None):
                 'email': requester_email,
                 'name': requester_name
             })
-        
+
         followers = _get_datarequest_followers(context, datarequest)
         user_list.extend(followers)
 

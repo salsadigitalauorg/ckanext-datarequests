@@ -40,24 +40,15 @@ def _has_alpha_chars(string, min_alpha_chars):
 
 
 def validate_datarequest(context, request_data):
-
     errors = {}
-
-    # Run profanity check
-    if profanity_check_enabled():
-        if common.profanity_check(title):
-            _add_error(errors, title_field, tk._("Blocked due to profanity"))
-        if description_field not in errors and common.profanity_check(description):
-            _add_error(errors, description_field, tk._("Blocked due to profanity"))
 
     default_title = ''
     default_org_id = ''
 
-
     ###################################
     # Validating hidden fields
     ###################################
-    
+
     # Validate requested_dataset
     requested_dataset = request_data.get('requested_dataset', None)
     requested_dataset_field = tk._('Requested dataset')
@@ -83,7 +74,6 @@ def validate_datarequest(context, request_data):
             tk.get_validator('group_id_exists')(request_data['organization_id'], context)
         except Exception:
             _add_error(errors, organization_field, tk._('Organization is not valid'))
-
 
     ###################################
     # Validating visible fields
@@ -111,6 +101,13 @@ def validate_datarequest(context, request_data):
 
     if description and not _has_alpha_chars(description, 2):
         _add_error(errors, description_field, tk._('Purpose of data use need to be longer than two characters and alphabetical'))
+
+    # Run profanity check
+    if profanity_check_enabled():
+        if common.profanity_check(title):
+            _add_error(errors, title_field, tk._("Blocked due to profanity"))
+        if description_field not in errors and common.profanity_check(description):
+            _add_error(errors, description_field, tk._("Blocked due to profanity"))
 
     # Check data_use_type data, it should not be empty.
     data_use_type = request_data.get('data_use_type', '')
@@ -163,7 +160,7 @@ def validate_datarequest(context, request_data):
 
     if data_outputs_description and not _has_alpha_chars(data_outputs_description, 2):
         _add_error(errors, data_outputs_description_field, tk._('Data outputs description need to be longer than two characters and alphabetical'))
-    
+
     # Check status, it should not be empty and have valid value.
     valid_statuses = helpers.get_status_list()
     status = request_data.get('status', 'Assigned')
