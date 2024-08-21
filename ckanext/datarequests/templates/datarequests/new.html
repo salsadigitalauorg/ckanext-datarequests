@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block primary_content_inner %}
-  <h1 class="{% block page_heading_class %}page-heading{% endblock %}">{% block page_heading %}{{ _('Data access request') }}{% endblock %}</h1>
+  <h1 class="{% block page_heading_class %}page-heading{% endblock %}">{% block page_heading %}{{ _('Create data access request') }}{% endblock %}</h1>
   {% snippet "datarequests/snippets/new_datarequest_form.html", requesting_organisation_options=c.requesting_organisation_options, data=c.datarequest, errors=c.errors, errors_summary=c.errors_summary, offering=c.offering %}
 {% endblock %}
 
