@@ -12,6 +12,7 @@
 {% set data_outputs_type = data.get('data_outputs_type', '') %}
 {% set data_outputs_description = data.get('data_outputs_description', '') %}
 {% set status = data.get('status', '') %}
+{% set requested_dataset = data.get('requested_dataset', '') %}
 
 {# This provides a full page that renders a form for publishing a dataset. It can
 then itself be extended to add/remove blocks of functionality. #}
@@ -20,6 +21,10 @@ then itself be extended to add/remove blocks of functionality. #}
   <input type="hidden" id="id" name="id" value="{{ data.get('id', '') }}" />
 
   {% block errors %}{{ form.errors(errors_summary) }}{% endblock %}
+
+  {% block offering_requested_dataset %}
+    {{ form.hidden('requested_dataset', value=requested_dataset) }}
+  {% endblock %}
 
   {% block offering_organization_id %}
     {{ form.hidden('organization_id', value=organization_id) }}
@@ -81,13 +86,7 @@ then itself be extended to add/remove blocks of functionality. #}
 
   {% block offering_status %}
     {% if show_status %}
-      {{ form.select('status', id='field-status', label=_('Status'), options=[
-          {'value': 'Assigned', 'text': _('Assigned')},
-          {'value': 'Processing', 'text': _('Processing')},
-          {'value': 'Finalised - Approved', 'text': _('Finalised - Approved')},
-          {'value': 'Finalised - Not Approved', 'text': _('Finalised - Not Approved')},
-          {'value': 'Assign to Internal Data Catalogue Support', 'text': _('Assign to Internal Data Catalogue Support')}
-        ], selected=status if status else '', error=errors['Status'], is_required=True) }}
+      {{ form.select('status', id='field-status', label=_('Status'), options=h.get_status_list(), selected=status if status else '', error=errors['Status'], is_required=True) }}
     {% endif %}
   {% endblock %}
 

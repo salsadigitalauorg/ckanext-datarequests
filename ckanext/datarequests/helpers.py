@@ -71,3 +71,23 @@ def is_ckan_29():
     Returns False if those are not present.
     """
     return tk.check_ckan_version(min_version='2.9.0')
+
+
+def get_status_list():
+    return [
+        {'value': 'Assigned', 'text': 'Assigned', 'label_class': 'open'},
+        {'value': 'Processing', 'text': 'Processing', 'label_class': 'open'},
+        {'value': 'Finalised - Approved', 'text': 'Finalised - Approved', 'label_class': 'closed'},
+        {'value': 'Finalised - Not Approved', 'text': 'Finalised - Not Approved', 'label_class': 'closed'},
+        {'value': 'Assign to Internal Data Catalogue Support', 'text': 'Assign to Internal Data Catalogue Support', 'label_class': 'open'}
+    ]
+
+
+def get_status_label(status):
+    default_label = {'label_class': 'open', 'text': 'Assigned'}
+
+    for item in get_status_list():
+        if item['value'] == status:
+            return item
+
+    return default_label

@@ -1,13 +1,10 @@
-Dear {{ user.fullname }},
+A new data access request has been submitted.
+To action this data access request, follow this link: {{ site_url }}/datarequest/{{ datarequest.id }}
+Requested data: {{ datarequest.title }}
+Purpose of data use: {{ datarequest.description }}
 
-The "{{ datarequest['title'] }}" data request has been created in the organization "{{ datarequest['organization']['title'] }}".
+*** Please use the Comments section of the Data Request to converse with the requestor. ***
 
-Check if you can give it an answer by accessing the Data Request tab that you will find in your CKAN instance.
+More information about the process for consideration and processing of a data access request can be found at https://www.forgov.qld.gov.au/information-and-communication-technology/recordkeeping-and-information-management/information-management/info-management-accordion/information-sharing-authorising-framework-isaf. If you require further assistance, please contact the Internal Data Catalogue management team at qgcdgdatadiscovery@chde.qld.gov.au or change the request's status to 'Assign to Internal Data Catalogue Support' and save.
 
-You are receiving this notification because you are member of the mentioned organization.
-
---
-
-Best Regards,
-{{ site_title }} Team -- {{ site_url }}
-
+Do not reply to this email.

@@ -14,18 +14,9 @@
   {% block package_item_content %}
     <div class="dataset-content">
       <h3 class="dataset-heading">
-        {% set status_labels = {
-          'Assigned': ('open', 'Assigned'),
-          'Processing': ('open', 'Processing'),
-          'Finalised - Approved': ('closed', 'Finalised - Approved'),
-          'Finalised - Not Approved': ('closed', 'Finalised - Not Approved'),
-          'Assign to Internal Data Catalogue Support': ('open', 'Assign to Internal Data Catalogue Support')
-        } %}
-
-        {% set label_class, label_text = status_labels.get(status, ('open', 'Assigned')) %}
-
-        <span class="uppercase label label-{{ label_class }}">
-          <i class="icon-unlock fa fa-unlock"></i> {% trans %}{{ label_text }}{% endtrans %}
+        {% set label = h.get_status_label(status) %}
+        <span class="uppercase label label-{{ label.label_class }}">
+          <i class="icon-unlock fa fa-unlock"></i> {{ label.text }}
         </span>
         {% link_for title|truncate(truncate_title_length), named_route='datarequest.show', id=datarequest_id %}
       </h3>
