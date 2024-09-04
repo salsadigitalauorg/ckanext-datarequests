@@ -80,7 +80,7 @@ then itself be extended to add/remove blocks of functionality. #}
 
   {% block offering_data_outputs_description %}
     {% call form.markdown('data_outputs_description', id='field-data-outputs-description', label=_('Data outputs description'), value=data_outputs_description, error=errors['Data outputs description'], is_required=True) %}
-      {{ form.info(_('Other Data output type, Will personal information be included, what is the intended audience for the outputs, and will any data be made open?')) }}
+      {{ form.info(_('Other Data output type, will personal information be included, what is the intended audience for the outputs, and will any data be made open?')) }}
     {% endcall %}
   {% endblock %}
 
