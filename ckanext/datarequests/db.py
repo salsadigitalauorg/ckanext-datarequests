@@ -81,10 +81,12 @@ class DataRequest(model.DomainObject):
 
         # For sysadmins, we show all the data requests.
         restricted_org_id = None
+
+        # If it is regular user, and the organization_id is not provided, filter it based on current user's organizations.
         if not current_user.sysadmin and organization_id is None:
             current_user_orgs = h.organizations_available('read') or []
             restricted_org_id = [org['id'] for org in current_user_orgs]
-            query = query.filter(cls.requesting_organisation.in_(restricted_org_id))
+            query = query.filter(cls.organization_id.in_(restricted_org_id))
 
         current_user_id = current_user.id if current_user else None
         if current_user_id:
