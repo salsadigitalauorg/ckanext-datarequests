@@ -53,14 +53,14 @@ class DataRequest(model.DomainObject):
         return query.filter(func.lower(cls.title) == func.lower(title)).first() is not None
 
     @classmethod
-    def get_ordered_by_date(cls, organization_id=None, user_id=None, closed=None, q=None, desc=False, status=None):
+    def get_ordered_by_date(cls, requesting_organisation=None, user_id=None, closed=None, q=None, desc=False, status=None):
         '''Personalized query'''
         query = model.Session.query(cls).autoflush(False)
 
         params = {}
 
-        if organization_id is not None:
-            params['organization_id'] = organization_id
+        if requesting_organisation is not None:
+            params['requesting_organisation'] = requesting_organisation
 
         if user_id is not None:
             params['user_id'] = user_id
@@ -82,11 +82,27 @@ class DataRequest(model.DomainObject):
         # For sysadmins, we show all the data requests.
         restricted_org_id = None
 
-        # If it is regular user, and the organization_id is not provided, filter it based on current user's organizations.
-        if not current_user.sysadmin and organization_id is None:
+        # If it is regular user, and the requesting_organisation is not provided, filter it based on current user's organizations.
+        if not current_user.sysadmin:
             current_user_orgs = h.organizations_available('read') or []
             restricted_org_id = [org['id'] for org in current_user_orgs]
-            query = query.filter(cls.organization_id.in_(restricted_org_id))
+
+            if requesting_organisation is None:
+                # If the requesting_organisation is not provided, show the data requests created by the current user
+                # or all data request within the current user's organizations.
+                query = query.filter(or_(cls.user_id == current_user.id, cls.requesting_organisation.in_(restricted_org_id)))
+            else:
+                if requesting_organisation not in restricted_org_id:
+                    # If the requesting_organisation is not within the current user's organizations,
+                    # show only the data requests created by the current user.
+                    query = query.filter(cls.user_id == current_user.id)
+
+                    # Remove the requesting_organisation from the filter.
+                    query = query.filter(cls.requesting_organisation is not None)
+                else:
+                    # Else the requesting_organisation is within the current user's organizations,
+                    # show the data requests created by the current user or all data request within selected organization.
+                    query = query.filter(or_(cls.user_id == current_user.id, cls.requesting_organisation == requesting_organisation))
 
         current_user_id = current_user.id if current_user else None
         if current_user_id:

@@ -469,10 +469,10 @@ def list_datarequests(context, data_dict):
     tk.check_access(constants.LIST_DATAREQUESTS, context, data_dict)
 
     # Get the organization
-    organization_id = data_dict.get('organization_id', None)
-    if organization_id:
+    requesting_organisation = data_dict.get('organization_id', None)
+    if requesting_organisation:
         # Get organization ID (organization name is received sometimes)
-        organization_id = organization_show({'ignore_auth': True}, {'id': organization_id}).get('id')
+        requesting_organisation = organization_show({'ignore_auth': True}, {'id': requesting_organisation}).get('id')
 
     user_id = data_dict.get('user_id', None)
     if user_id:
@@ -493,7 +493,7 @@ def list_datarequests(context, data_dict):
         desc = True
 
     # Call the function
-    db_datarequests = db.DataRequest.get_ordered_by_date(organization_id=organization_id,
+    db_datarequests = db.DataRequest.get_ordered_by_date(requesting_organisation=requesting_organisation,
                                                          user_id=user_id, status=status,
                                                          q=q, desc=desc)
 
@@ -514,24 +514,24 @@ def list_datarequests(context, data_dict):
         'Assign to Internal Data Catalogue Support': 0
     }
     for data_req in db_datarequests:
-        organization_id = data_req.organization_id
+        requesting_organisation = data_req.requesting_organisation
         status = data_req.status
 
-        if organization_id:
-            no_processed_organization_facet[organization_id] = no_processed_organization_facet.get(organization_id, 0) + 1
+        if requesting_organisation:
+            no_processed_organization_facet[requesting_organisation] = no_processed_organization_facet.get(requesting_organisation, 0) + 1
 
         if status in no_processed_status_facet:
             no_processed_status_facet[status] += 1
 
     # Format facets
     organization_facet = []
-    for organization_id in no_processed_organization_facet:
+    for requesting_organisation in no_processed_organization_facet:
         try:
-            organization = organization_show({'ignore_auth': True}, {'id': organization_id})
+            organization = organization_show({'ignore_auth': True}, {'id': requesting_organisation})
             organization_facet.append({
                 'name': organization.get('name'),
                 'display_name': organization.get('display_name'),
-                'count': no_processed_organization_facet[organization_id]
+                'count': no_processed_organization_facet[requesting_organisation]
             })
         except Exception:
             pass
