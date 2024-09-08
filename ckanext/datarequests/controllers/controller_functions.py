@@ -58,7 +58,7 @@ def _get_context():
             'user': c.user, 'auth_user_obj': c.userobj}
 
 
-def _show_index(user_id, organization_id, include_organization_facet, url_func, file_to_render, extra_vars=None):
+def _show_index(user_id, requesting_organisation, include_organization_facet, url_func, file_to_render, extra_vars=None):
     def pager_url(status=None, sort=None, q=None, page=None):
         params = []
 
@@ -88,8 +88,8 @@ def _show_index(user_id, organization_id, include_organization_facet, url_func, 
         if q:
             data_dict['q'] = q
 
-        if organization_id:
-            data_dict['organization_id'] = organization_id
+        if requesting_organisation:
+            data_dict['requesting_organisation'] = requesting_organisation
 
         if user_id:
             data_dict['user_id'] = user_id
@@ -105,7 +105,7 @@ def _show_index(user_id, organization_id, include_organization_facet, url_func, 
         c.filters = [(tk._('Newest'), 'desc'), (tk._('Oldest'), 'asc')]
         c.sort = sort
         c.q = q
-        c.organization = organization_id
+        c.requesting_organisation = requesting_organisation
         c.status = status
         c.datarequest_count = datarequests_list['count']
         c.datarequests = datarequests_list['result']
@@ -123,14 +123,14 @@ def _show_index(user_id, organization_id, include_organization_facet, url_func, 
 
         # Organization facet cannot be shown when the user is viewing an org
         if include_organization_facet is True:
-            c.facet_titles['organization'] = tk._('Organizations')
+            c.facet_titles['requesting_organisation'] = tk._('Organizations')
 
         if not extra_vars:
             extra_vars = {}
         extra_vars['filters'] = c.filters
         extra_vars['sort'] = c.sort
         extra_vars['q'] = c.q
-        extra_vars['organization'] = c.organization
+        extra_vars['requesting_organisation'] = c.requesting_organisation
         extra_vars['status'] = c.status
         extra_vars['datarequest_count'] = c.datarequest_count
         extra_vars['datarequests'] = c.datarequests
@@ -141,7 +141,7 @@ def _show_index(user_id, organization_id, include_organization_facet, url_func, 
             extra_vars['user'] = None
         if 'user_dict' not in extra_vars:
             extra_vars['user_dict'] = None
-        extra_vars['group_type'] = 'organization'
+        extra_vars['group_type'] = 'requesting_organisation'
         return tk.render(file_to_render, extra_vars=extra_vars)
     except ValueError as e:
         # This exception should only occur if the page value is not valid
@@ -153,7 +153,7 @@ def _show_index(user_id, organization_id, include_organization_facet, url_func, 
 
 
 def index():
-    return _show_index(None, request_helpers.get_first_query_param('organization', ''), True, search_url,
+    return _show_index(None, request_helpers.get_first_query_param('requesting_organisation', ''), True, search_url,
                        'datarequests/index.html')
 
 

@@ -469,7 +469,7 @@ def list_datarequests(context, data_dict):
     tk.check_access(constants.LIST_DATAREQUESTS, context, data_dict)
 
     # Get the organization
-    requesting_organisation = data_dict.get('organization_id', None)
+    requesting_organisation = data_dict.get('requesting_organisation', None)
     if requesting_organisation:
         # Get organization ID (organization name is received sometimes)
         requesting_organisation = organization_show({'ignore_auth': True}, {'id': requesting_organisation}).get('id')
@@ -524,11 +524,11 @@ def list_datarequests(context, data_dict):
             no_processed_status_facet[status] += 1
 
     # Format facets
-    organization_facet = []
+    requesting_organization_facet = []
     for requesting_organisation in no_processed_organization_facet:
         try:
             organization = organization_show({'ignore_auth': True}, {'id': requesting_organisation})
-            organization_facet.append({
+            requesting_organization_facet.append({
                 'name': organization.get('name'),
                 'display_name': organization.get('display_name'),
                 'count': no_processed_organization_facet[requesting_organisation]
@@ -552,8 +552,8 @@ def list_datarequests(context, data_dict):
     }
 
     # Facets can only be included if they contain something
-    if organization_facet:
-        result['facets']['organization'] = {'items': organization_facet}
+    if requesting_organization_facet:
+        result['facets']['requesting_organisation'] = {'items': requesting_organization_facet}
 
     if status_facet:
         result['facets']['status'] = {'items': status_facet}
