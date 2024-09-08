@@ -112,7 +112,8 @@ def delete_datarequest(context, data_dict):
 
 
 def close_datarequest(context, data_dict):
-    return auth_if_creator(context, data_dict, constants.SHOW_DATAREQUEST)
+    # Close data request feature is removed in this project.
+    return {'success': False}
 
 
 def comment_datarequest(context, data_dict):
