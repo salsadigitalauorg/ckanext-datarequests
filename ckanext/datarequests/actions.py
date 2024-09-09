@@ -20,6 +20,7 @@
 
 import datetime
 import logging
+
 try:
     from html import escape
 except ImportError:
@@ -44,12 +45,12 @@ CREATION_THROTTLE_EXPIRY = 300
 THROTTLE_ERROR = "Too many requests submitted, please wait {} minutes and try again"
 
 
-def _get_user(user_id):
+def _get_user(user_id, keep_email=False):
     try:
         if user_id in USERS_CACHE:
             return USERS_CACHE[user_id]
         else:
-            user = tk.get_action('user_show')({'ignore_auth': True}, {'id': user_id})
+            user = tk.get_action('user_show')({'ignore_auth': True, 'keep_email': keep_email}, {'id': user_id})
             USERS_CACHE[user_id] = user
             return user
     except Exception as e:
@@ -168,21 +169,24 @@ def _get_datarequest_followers(context, datarequest_dict):
     followers = db.DataRequestFollower.get(datarequest_id=datarequest_id)
     for follower in followers:
         if follower.user_id != context['auth_user_obj'].id:
-            follower.user = _get_user(follower.user_id)
-            users.append({
-                'email': follower.user['email'],
-                'name': follower.user['name']
-            })
+            follower.user = _get_user(follower.user_id, True)
+            if follower.user.get('email', None):
+                users.append({
+                    'email': follower.user['email'],
+                    'name': follower.user['name'] or follower.user['email'],
+                })
 
     return users
 
 
 def _send_mail(action_type, datarequest, job_title=None, context=None, comment=None):
-    # Add catalog support team to the list of users to notify by default for all action types
-    user_list = [{
-        'email': config.get('ckanext.datarequests.internal_data_catalogue_support_team_email'),
-        'name': config.get('ckanext.datarequests.internal_data_catalogue_support_team_name')
-    }]
+    user_list = []
+
+    def get_catalog_support_team():
+        user_list.append({
+            'email': config.get('ckanext.datarequests.internal_data_catalogue_support_team_email'),
+            'name': config.get('ckanext.datarequests.internal_data_catalogue_support_team_name')
+        })
 
     def get_dataset_poc():
         dataset = _get_package(datarequest.get('requested_dataset'))
@@ -209,13 +213,15 @@ def _send_mail(action_type, datarequest, job_title=None, context=None, comment=N
 
     match action_type:
         case 'new_datarequest':
+            get_catalog_support_team()
             get_dataset_poc()
 
         case 'update_datarequest':
+            get_catalog_support_team()
             get_datarequest_creator()
-            get_datarequest_followers()
 
         case 'comment_datarequest':
+            get_catalog_support_team()
             get_datarequest_followers()
 
             if datarequest['user']['id'] == comment['user_id']:
@@ -225,6 +231,10 @@ def _send_mail(action_type, datarequest, job_title=None, context=None, comment=N
                 get_datarequest_creator()
 
         case 'delete_datarequest':
+            get_catalog_support_team()
+            get_datarequest_followers()
+
+        case 'update_datarequest_follower':
             get_datarequest_followers()
 
     # Load requesting organisation.
@@ -436,6 +446,14 @@ def update_datarequest(context, data_dict):
     # Validate data
     validator.validate_datarequest(context, data_dict)
 
+    # Track changes in the data request
+    has_changes = False
+    old_data_json = _dictize_datarequest(data_req)
+    for key, value in data_dict.items():
+        if old_data_json[key] != value:
+            has_changes = True
+            break
+
     # Set the data provided by the user in the data_red
     current_status = data_req.status
     _undictize_datarequest_basic(data_req, data_dict)
@@ -448,6 +466,11 @@ def update_datarequest(context, data_dict):
 
     if current_status != new_status:
         _send_mail('update_datarequest', datarequest_dict, 'Data Request Status Change Email', context)
+        has_changes = True
+
+    # Send follower and email notifications if there is changes in the data request
+    if has_changes:
+        _send_mail('update_datarequest_follower', datarequest_dict, 'Data Request Updated Email', context)
 
     return datarequest_dict
 
