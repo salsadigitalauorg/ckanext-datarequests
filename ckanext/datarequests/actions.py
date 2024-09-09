@@ -178,6 +178,7 @@ def _get_datarequest_followers(context, datarequest_dict):
 
 
 def _send_mail(action_type, datarequest, job_title=None, context=None, comment=None):
+    # Add catalog support team to the list of users to notify by default for all action types
     user_list = [{
         'email': config.get('ckanext.datarequests.internal_data_catalogue_support_team_email'),
         'name': config.get('ckanext.datarequests.internal_data_catalogue_support_team_name')
@@ -206,19 +207,33 @@ def _send_mail(action_type, datarequest, job_title=None, context=None, comment=N
         followers = _get_datarequest_followers(context, datarequest)
         user_list.extend(followers)
 
-    if action_type == 'new_datarequest':
-        get_dataset_poc()
-    elif action_type == 'update_datarequest':
-        get_datarequest_creator()
-        get_datarequest_followers()
-    elif action_type == 'comment_datarequest':
-        get_datarequest_followers()
-
-        if datarequest['user']['id'] == comment['user_id']:
+    match action_type:
+        case 'new_datarequest':
             get_dataset_poc()
-        else:
-            get_datarequest_creator()
 
+        case 'update_datarequest':
+            get_datarequest_creator()
+            get_datarequest_followers()
+
+        case 'comment_datarequest':
+            get_datarequest_followers()
+
+            if datarequest['user']['id'] == comment['user_id']:
+                # If this comment from datarequest creator, notify the dataset POC.
+                get_dataset_poc()
+            else:
+                get_datarequest_creator()
+
+        case 'delete_datarequest':
+            get_datarequest_followers()
+
+    # Load requesting organisation.
+    if datarequest.get('requesting_organisation'):
+        org = _get_organization(datarequest['requesting_organisation'])
+        if org:
+            datarequest['requesting_organisation_dict'] = org
+
+    # Sends the email to users.
     for user in user_list:
         try:
             extra_vars = {
@@ -612,7 +627,11 @@ def delete_datarequest(context, data_dict):
     session.delete(data_req)
     session.commit()
 
-    return _dictize_datarequest(data_req)
+    # Send emails
+    datarequest_dict = _dictize_datarequest(data_req)
+    _send_mail('delete_datarequest', datarequest_dict, 'Data Request Deletion Email', context)
+
+    return datarequest_dict
 
 
 def close_datarequest(context, data_dict):
