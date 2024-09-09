@@ -21,7 +21,7 @@ from ckan import authz
 from ckan.plugins.toolkit import current_user, h
 from ckan.plugins.toolkit import asbool, auth_allow_anonymous_access, config, get_action
 
-from . import constants, db, request_helpers
+from . import constants, db
 from .actions import _dictize_datarequest
 
 
@@ -41,32 +41,21 @@ def _is_any_group_member(context):
     return user_name and authz.has_user_permission_for_some_org(user_name, 'read')
 
 
-def _check_organization_access(data_dict, is_listing=False):
-    # Sysadmins can see all data requests, other users can only see their own organization's data requests.
+@auth_allow_anonymous_access
+def show_datarequest(context, data_dict):
     if not current_user.sysadmin:
-        if is_listing:
-            organization_name = request_helpers.get_first_query_param('organization')
-            if not organization_name:
-                return {'success': True}
+        result = db.DataRequest.get(id=data_dict.get('id'))
+        data_req = result[0]
+        data_dict = _dictize_datarequest(data_req)
+        if data_dict.get('user_id', None) == current_user.id:
+            return {'success': True}
 
-            organization = get_action('organization_show')({'ignore_auth': True}, {'id': organization_name})
-            organization_id = organization.get('id', None)
-        else:
-            result = db.DataRequest.get(id=data_dict.get('id'))
-            data_req = result[0]
-            data_dict = _dictize_datarequest(data_req)
-            organization_id = data_dict.get('organization_id', None)
-
+        requesting_organisation = data_dict.get('requesting_organisation', None)
         current_user_orgs = [org['id'] for org in h.organizations_available('read')] or []
-        if organization_id not in current_user_orgs:
+        if requesting_organisation not in current_user_orgs:
             return {'success': False}
 
     return {'success': True}
-
-
-@auth_allow_anonymous_access
-def show_datarequest(context, data_dict):
-    return _check_organization_access(data_dict)
 
 
 def auth_if_creator(context, data_dict, show_function):
@@ -104,7 +93,7 @@ def update_datarequest(context, data_dict):
 
 @auth_allow_anonymous_access
 def list_datarequests(context, data_dict):
-    return _check_organization_access(data_dict, True)
+    return {'success': True}
 
 
 def delete_datarequest(context, data_dict):
