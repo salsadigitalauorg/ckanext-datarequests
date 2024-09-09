@@ -19,7 +19,7 @@
 
 from ckan import authz
 from ckan.plugins.toolkit import current_user, h
-from ckan.plugins.toolkit import asbool, auth_allow_anonymous_access, config, get_action
+from ckan.plugins.toolkit import asbool, auth_allow_anonymous_access, config, get_action, auth_sysadmins_check
 
 from . import constants, db, request_helpers
 from .actions import _dictize_datarequest
@@ -111,6 +111,7 @@ def delete_datarequest(context, data_dict):
     return auth_if_creator(context, data_dict, constants.SHOW_DATAREQUEST)
 
 
+@auth_sysadmins_check
 def close_datarequest(context, data_dict):
     # Close data request feature is removed in this project.
     return {'success': False}
