@@ -177,12 +177,13 @@ def _get_datarequest_followers(context, datarequest_dict):
     return users
 
 
-def _send_mail(action_type, datarequest, job_title=None, context=None):
+def _send_mail(action_type, datarequest, job_title=None, context=None, comment=None):
     user_list = [{
         'email': config.get('ckanext.datarequests.internal_data_catalogue_support_team_email'),
         'name': config.get('ckanext.datarequests.internal_data_catalogue_support_team_name')
     }]
-    if action_type == 'new_datarequest':
+
+    def get_dataset_poc():
         dataset = _get_package(datarequest.get('requested_dataset'))
         dataset_poi_email = dataset.get('point_of_contact_email') if dataset else None
         dataset_poi_name = dataset.get('point_of_contact') if dataset else None
@@ -191,7 +192,8 @@ def _send_mail(action_type, datarequest, job_title=None, context=None):
                 'email': dataset_poi_email,
                 'name': dataset_poi_name
             })
-    elif action_type == 'update_datarequest':
+
+    def get_datarequest_creator():
         requester_email = datarequest['user']['email']
         requester_name = datarequest['user']['name']
         if requester_email:
@@ -200,13 +202,28 @@ def _send_mail(action_type, datarequest, job_title=None, context=None):
                 'name': requester_name
             })
 
+    def get_datarequest_followers():
         followers = _get_datarequest_followers(context, datarequest)
         user_list.extend(followers)
+
+    if action_type == 'new_datarequest':
+        get_dataset_poc()
+    elif action_type == 'update_datarequest':
+        get_datarequest_creator()
+        get_datarequest_followers()
+    elif action_type == 'comment_datarequest':
+        get_datarequest_followers()
+
+        if datarequest['user']['id'] == comment['user_id']:
+            get_dataset_poc()
+        else:
+            get_datarequest_creator()
 
     for user in user_list:
         try:
             extra_vars = {
                 'datarequest': datarequest,
+                'comment': comment,
                 'user': user,
                 'site_title': config.get('ckan.site_title'),
                 'site_url': config.get('ckan.site_url')
@@ -695,7 +712,13 @@ def comment_datarequest(context, data_dict):
     session.add(comment)
     session.commit()
 
-    return _dictize_comment(comment)
+    comment_dict = _dictize_comment(comment)
+
+    # Send emails
+    datarequest_dict = _dictize_datarequest(db.DataRequest.get(id=datarequest_id)[0])
+    _send_mail('comment_datarequest', datarequest_dict, 'Data Request Comment Email', context, comment_dict)
+
+    return comment_dict
 
 
 def show_datarequest_comment(context, data_dict):

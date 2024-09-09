@@ -281,3 +281,8 @@ def update_db(deprecated_model=None):
         if 'requested_dataset' not in meta.tables['datarequests'].columns:
             log.info("DataRequests-UpdateDB: 'requested_dataset' field does not exist, adding...")
             DDL('ALTER TABLE "datarequests" ADD COLUMN "requested_dataset" text COLLATE pg_catalog."default";').execute(model.Session.get_bind())
+
+        # change the title field to 1000 characters if it is still 100
+        if 'title' in meta.tables['datarequests'].columns and meta.tables['datarequests'].columns['title'].type.length == 100:
+            log.info("DataRequests-UpdateDB: 'title' field exists and length is 100, changing to 1000 characters...")
+            DDL('ALTER TABLE "datarequests" ALTER COLUMN "title" TYPE varchar(1000)').execute(model.Session.get_bind())
