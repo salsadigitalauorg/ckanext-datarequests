@@ -26,7 +26,7 @@ try:
 except ImportError:
     from cgi import escape
 
-from ckan import authz
+from ckan import authz, model
 from ckan.lib import mailer
 from ckan.lib.redis import connect_to_redis
 from ckan.plugins import toolkit as tk
@@ -537,6 +537,9 @@ def list_datarequests(context, data_dict):
     # Filter by status
     status = data_dict.get('status', None)
 
+    #  Filter by state
+    state = data_dict.get('state', None)
+
     # Free text filter
     q = data_dict.get('q', None)
 
@@ -550,7 +553,7 @@ def list_datarequests(context, data_dict):
     # Call the function
     db_datarequests = db.DataRequest.get_ordered_by_date(requesting_organisation=requesting_organisation,
                                                          user_id=user_id, status=status,
-                                                         q=q, desc=desc)
+                                                         q=q, desc=desc, state=state)
 
     # Dictize the results
     datarequests = []
