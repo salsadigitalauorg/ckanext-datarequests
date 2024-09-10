@@ -38,7 +38,7 @@ def uuid4():
     return str(uuid.uuid4())
 
 
-class DataRequest(model.DomainObject):
+class DataRequest(model.core.StatefulObjectMixin, model.DomainObject):
 
     @classmethod
     def get(cls, **kw):
@@ -186,6 +186,7 @@ datarequests_table = sa.Table('datarequests', model.meta.metadata,
                               sa.Column('data_outputs_description', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
                               sa.Column('status', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u'Assigned'),
                               sa.Column('requested_dataset', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
+                              sa.Column('state', sa.types.UnicodeText, default=model.core.State.ACTIVE),
                               extend_existing=True
                               )
 
@@ -286,3 +287,7 @@ def update_db(deprecated_model=None):
         if 'title' in meta.tables['datarequests'].columns and meta.tables['datarequests'].columns['title'].type.length == 100:
             log.info("DataRequests-UpdateDB: 'title' field exists and length is 100, changing to 1000 characters...")
             DDL('ALTER TABLE "datarequests" ALTER COLUMN "title" TYPE varchar(1000)').execute(model.Session.get_bind())
+
+        if 'state' not in meta.tables['datarequests'].columns:
+            log.info("DataRequests-UpdateDB: 'state' field does not exist, adding...")
+            DDL('ALTER TABLE "datarequests" ADD COLUMN "state" text COLLATE pg_catalog."default";').execute(model.Session.get_bind())

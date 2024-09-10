@@ -647,7 +647,7 @@ def delete_datarequest(context, data_dict):
         raise tk.ObjectNotFound(tk._('Data Request %s not found in the data base') % datarequest_id)
 
     data_req = result[0]
-    session.delete(data_req)
+    data_req.delete()
     session.commit()
 
     # Send emails
