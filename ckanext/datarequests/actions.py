@@ -459,6 +459,9 @@ def update_datarequest(context, data_dict):
     _undictize_datarequest_basic(data_req, data_dict)
     new_status = data_req.status
 
+    # Always force datarequest to active state when updating, some older dataset may be in null state
+    data_req.state = model.State.ACTIVE
+
     session.add(data_req)
     session.commit()
 
