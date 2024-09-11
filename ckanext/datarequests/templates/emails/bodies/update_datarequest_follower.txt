@@ -1,0 +1,9 @@
+An update has been made to a data access request you are following.
+
+Requested data: {{ datarequest.title }}
+
+To view the data access request, follow this link: {{ site_url }}/datarequest/{{ datarequest.id }}
+
+If you require assistance, please contact the Internal Data Catalogue management team at qgcdgdatadiscovery@chde.qld.gov.au.
+
+Do not reply to this email.

@@ -38,24 +38,30 @@ def uuid4():
     return str(uuid.uuid4())
 
 
-class DataRequest(model.DomainObject):
+class DataRequest(model.core.StatefulObjectMixin, model.DomainObject):
 
     @classmethod
     def get(cls, **kw):
         '''Finds all the instances required.'''
         query = model.Session.query(cls).autoflush(False)
+        query = query.filter(or_(cls.state == model.core.State.ACTIVE, cls.state is None))
         return query.filter_by(**kw).all()
 
     @classmethod
     def datarequest_exists(cls, title):
         '''Returns true if there is a Data Request with the same title (case insensitive)'''
         query = model.Session.query(cls).autoflush(False)
+        query = query.filter(or_(cls.state == model.core.State.ACTIVE, cls.state is None))
         return query.filter(func.lower(cls.title) == func.lower(title)).first() is not None
 
     @classmethod
-    def get_ordered_by_date(cls, requesting_organisation=None, user_id=None, closed=None, q=None, desc=False, status=None):
+    def get_ordered_by_date(cls, requesting_organisation=None, user_id=None, closed=None, q=None, desc=False, status=None, state=None):
         '''Personalized query'''
         query = model.Session.query(cls).autoflush(False)
+        if state is None:
+            query = query.filter(or_(cls.state == model.core.State.ACTIVE, cls.state is None))
+        else:
+            query = query.filter_by(state=state)
 
         params = {}
 
@@ -121,7 +127,7 @@ class DataRequest(model.DomainObject):
     @classmethod
     def get_open_datarequests_number(cls):
         '''Returns the number of data requests that are open'''
-        return model.Session.query(func.count(cls.id)).filter_by(closed=False).scalar()
+        return model.Session.query(func.count(cls.id)).filter_by(closed=False).filter(or_(cls.state == model.core.State.ACTIVE, cls.state is None)).scalar()
 
 
 class Comment(model.DomainObject):
@@ -186,6 +192,7 @@ datarequests_table = sa.Table('datarequests', model.meta.metadata,
                               sa.Column('data_outputs_description', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
                               sa.Column('status', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u'Assigned'),
                               sa.Column('requested_dataset', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
+                              sa.Column('state', sa.types.UnicodeText, default=model.core.State.ACTIVE),
                               extend_existing=True
                               )
 
@@ -281,3 +288,12 @@ def update_db(deprecated_model=None):
         if 'requested_dataset' not in meta.tables['datarequests'].columns:
             log.info("DataRequests-UpdateDB: 'requested_dataset' field does not exist, adding...")
             DDL('ALTER TABLE "datarequests" ADD COLUMN "requested_dataset" text COLLATE pg_catalog."default";').execute(model.Session.get_bind())
+
+        # change the title field to 1000 characters if it is still 100
+        if 'title' in meta.tables['datarequests'].columns and meta.tables['datarequests'].columns['title'].type.length == 100:
+            log.info("DataRequests-UpdateDB: 'title' field exists and length is 100, changing to 1000 characters...")
+            DDL('ALTER TABLE "datarequests" ALTER COLUMN "title" TYPE varchar(1000)').execute(model.Session.get_bind())
+
+        if 'state' not in meta.tables['datarequests'].columns:
+            log.info("DataRequests-UpdateDB: 'state' field does not exist, adding...")
+            DDL('ALTER TABLE "datarequests" ADD COLUMN "state" text COLLATE pg_catalog."default";').execute(model.Session.get_bind())
