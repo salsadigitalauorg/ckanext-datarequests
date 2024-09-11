@@ -44,14 +44,14 @@ class DataRequest(model.core.StatefulObjectMixin, model.DomainObject):
     def get(cls, **kw):
         '''Finds all the instances required.'''
         query = model.Session.query(cls).autoflush(False)
-        query = query.filter(or_(cls.state == model.core.State.ACTIVE, cls.state == None))
+        query = query.filter(or_(cls.state == model.core.State.ACTIVE, cls.state is None))
         return query.filter_by(**kw).all()
 
     @classmethod
     def datarequest_exists(cls, title):
         '''Returns true if there is a Data Request with the same title (case insensitive)'''
         query = model.Session.query(cls).autoflush(False)
-        query = query.filter(or_(cls.state == model.core.State.ACTIVE, cls.state == None))
+        query = query.filter(or_(cls.state == model.core.State.ACTIVE, cls.state is None))
         return query.filter(func.lower(cls.title) == func.lower(title)).first() is not None
 
     @classmethod
@@ -59,7 +59,7 @@ class DataRequest(model.core.StatefulObjectMixin, model.DomainObject):
         '''Personalized query'''
         query = model.Session.query(cls).autoflush(False)
         if state is None:
-            query = query.filter(or_(cls.state == model.core.State.ACTIVE, cls.state == None))
+            query = query.filter(or_(cls.state == model.core.State.ACTIVE, cls.state is None))
         else:
             query = query.filter_by(state=state)
 
@@ -127,7 +127,7 @@ class DataRequest(model.core.StatefulObjectMixin, model.DomainObject):
     @classmethod
     def get_open_datarequests_number(cls):
         '''Returns the number of data requests that are open'''
-        return model.Session.query(func.count(cls.id)).filter_by(closed=False).filter(or_(cls.state == model.core.State.ACTIVE, cls.state == None)).scalar()
+        return model.Session.query(func.count(cls.id)).filter_by(closed=False).filter(or_(cls.state == model.core.State.ACTIVE, cls.state is None)).scalar()
 
 
 class Comment(model.DomainObject):
