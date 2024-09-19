@@ -30,7 +30,7 @@ from ckan import authz, model
 from ckan.lib import mailer
 from ckan.lib.redis import connect_to_redis
 from ckan.plugins import toolkit as tk
-from ckan.plugins.toolkit import h, config
+from ckan.plugins.toolkit import h, config, current_user
 
 from . import common, constants, db, validator
 
@@ -527,10 +527,10 @@ def list_datarequests(context, data_dict):
     tk.check_access(constants.LIST_DATAREQUESTS, context, data_dict)
 
     # Get the organization
-    requesting_organisation = data_dict.get('requesting_organisation', None)
-    if requesting_organisation:
+    organization_id = data_dict.get('organization_id', None)
+    if organization_id:
         # Get organization ID (organization name is received sometimes)
-        requesting_organisation = organization_show({'ignore_auth': True}, {'id': requesting_organisation}).get('id')
+        organization_id = organization_show({'ignore_auth': True}, {'id': organization_id}).get('id')
 
     user_id = data_dict.get('user_id', None)
     if user_id:
@@ -554,7 +554,7 @@ def list_datarequests(context, data_dict):
         desc = True
 
     # Call the function
-    db_datarequests = db.DataRequest.get_ordered_by_date(requesting_organisation=requesting_organisation,
+    db_datarequests = db.DataRequest.get_ordered_by_date(organization_id=organization_id,
                                                          user_id=user_id, status=status,
                                                          q=q, desc=desc, state=state)
 
@@ -575,24 +575,24 @@ def list_datarequests(context, data_dict):
         'Assign to Internal Data Catalogue Support': 0
     }
     for data_req in db_datarequests:
-        requesting_organisation = data_req.requesting_organisation
+        organization_id = data_req.organization_id
         status = data_req.status
 
-        if requesting_organisation:
-            no_processed_organization_facet[requesting_organisation] = no_processed_organization_facet.get(requesting_organisation, 0) + 1
+        if organization_id:
+            no_processed_organization_facet[organization_id] = no_processed_organization_facet.get(organization_id, 0) + 1
 
         if status in no_processed_status_facet:
             no_processed_status_facet[status] += 1
 
     # Format facets
-    requesting_organization_facet = []
-    for requesting_organisation in no_processed_organization_facet:
+    organization_facet = []
+    for organization_id in no_processed_organization_facet:
         try:
-            organization = organization_show({'ignore_auth': True}, {'id': requesting_organisation})
-            requesting_organization_facet.append({
+            organization = organization_show({'ignore_auth': True}, {'id': organization_id})
+            organization_facet.append({
                 'name': organization.get('name'),
                 'display_name': organization.get('display_name'),
-                'count': no_processed_organization_facet[requesting_organisation]
+                'count': no_processed_organization_facet[organization_id]
             })
         except Exception:
             pass
@@ -613,8 +613,14 @@ def list_datarequests(context, data_dict):
     }
 
     # Facets can only be included if they contain something
-    if requesting_organization_facet:
-        result['facets']['requesting_organisation'] = {'items': requesting_organization_facet}
+    if organization_facet:
+        # If not sysadmin, only show organizations where the current user is a member/editor/org admin.
+        if not current_user.sysadmin:
+            current_user_orgs = h.organizations_available('read')
+            user_orgs = {org['name'] for org in current_user_orgs}
+            organization_facet = [org for org in organization_facet if org['name'] in user_orgs]
+
+        result['facets']['organization'] = {'items': organization_facet}
 
     if status_facet:
         result['facets']['status'] = {'items': status_facet}
