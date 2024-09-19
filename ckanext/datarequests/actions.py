@@ -218,7 +218,8 @@ def _send_mail(action_type, datarequest, job_title=None, context=None, comment=N
 
         case 'update_datarequest':
             get_catalog_support_team()
-            get_datarequest_creator()
+            if current_user.id != datarequest['user_id']:
+                get_datarequest_creator()
 
         case 'comment_datarequest':
             get_catalog_support_team()
@@ -455,9 +456,7 @@ def update_datarequest(context, data_dict):
             break
 
     # Set the data provided by the user in the data_red
-    current_status = data_req.status
     _undictize_datarequest_basic(data_req, data_dict)
-    new_status = data_req.status
 
     # Always force datarequest to active state when updating, some older dataset may be in null state
     data_req.state = model.State.ACTIVE
@@ -467,12 +466,9 @@ def update_datarequest(context, data_dict):
 
     datarequest_dict = _dictize_datarequest(data_req)
 
-    if current_status != new_status:
-        _send_mail('update_datarequest', datarequest_dict, 'Data Request Status Change Email', context)
-        has_changes = True
-
     # Send follower and email notifications if there is changes in the data request
     if has_changes:
+        _send_mail('update_datarequest', datarequest_dict, 'Data Request Status Change Email', context)
         _send_mail('update_datarequest_follower', datarequest_dict, 'Data Request Updated Email', context)
 
     return datarequest_dict
