@@ -50,9 +50,9 @@ def show_datarequest(context, data_dict):
         if data_dict.get('user_id', None) == current_user.id:
             return {'success': True}
 
-        requesting_organisation = data_dict.get('requesting_organisation', None)
+        organization_id = data_dict.get('organization_id', None)
         current_user_orgs = [org['id'] for org in h.organizations_available('read')] or []
-        if requesting_organisation not in current_user_orgs:
+        if organization_id not in current_user_orgs:
             return {'success': False}
 
     return {'success': True}

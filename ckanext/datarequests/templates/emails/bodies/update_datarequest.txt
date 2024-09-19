@@ -1,9 +1,9 @@
 An update on the following data access request has been submitted.
-To view the status of your data access request, follow this link: 
+To view the data access request, follow this link: 
 
 {{ site_url }}/datarequest/{{ datarequest.id }}
 
 Requested data: {{ datarequest.title }}
-Change of status: {{ datarequest.status }}
+Current of status: {{ datarequest.status }}
 
 Do not reply to this email.
