@@ -4,6 +4,6 @@ To view the data access request, follow this link:
 {{ site_url }}/datarequest/{{ datarequest.id }}
 
 Requested data: {{ datarequest.title }}
-Current of status: {{ datarequest.status }}
+Current status: {{ datarequest.status }}
 
 Do not reply to this email.

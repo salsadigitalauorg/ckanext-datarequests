@@ -449,6 +449,8 @@ def comment(id):
 
                 h.flash_notice(flash_message)
 
+                return tk.redirect_to(tk.url_for('datarequest.comment', id=id))
+
             except tk.NotAuthorized as e:
                 log.warning(e)
                 return tk.abort(403, tk._('You are not authorized to %s' % action_text))
