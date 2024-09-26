@@ -2,10 +2,17 @@
 
 {% set title = data.get('title', '') %}
 {% set description = data.get('description', '') %}
-{% set organization_id = data.get('organization_id', h.get_request_param('organization')) %}
-{% set organizations_available = h.organizations_available('read') %}
 {% set form_horizontal = 'form-horizontal' if h.ckan_version()[:3] <= '2.7' else '' %}
-{% set description_required = h.is_description_required %}
+{% set organization_id = data.get('organization_id', h.get_request_param('organization')) %}
+
+{% set data_use_type = data.get('data_use_type', '') %}
+{% set who_will_access_this_data = data.get('who_will_access_this_data', '') %}
+{% set requesting_organisation = data.get('requesting_organisation', '') %}
+{% set data_storage_environment = data.get('data_storage_environment', '') %}
+{% set data_outputs_type = data.get('data_outputs_type', '') %}
+{% set data_outputs_description = data.get('data_outputs_description', '') %}
+{% set status = data.get('status', '') %}
+{% set requested_dataset = data.get('requested_dataset', '') %}
 
 {# This provides a full page that renders a form for publishing a dataset. It can
 then itself be extended to add/remove blocks of functionality. #}
@@ -15,29 +22,72 @@ then itself be extended to add/remove blocks of functionality. #}
 
   {% block errors %}{{ form.errors(errors_summary) }}{% endblock %}
 
+  {% block offering_requested_dataset %}
+    {{ form.hidden('requested_dataset', value=requested_dataset) }}
+  {% endblock %}
+
+  {% block offering_organization_id %}
+    {{ form.hidden('organization_id', value=organization_id) }}
+  {% endblock %}
+
   {% block offering_title %}
-    {{ form.input('title', id='field-title', label=_('Title'), placeholder=_('eg. Data Request Name'), value=title, error=errors['Title'], classes=['control-full', 'control-large'], is_required=true) }}
+    {{ form.input('title', id='field-title', label=_('Requested data'), placeholder=_('eg. Data Request Name'), value=title, error=errors['Title'], classes=['control-full', 'control-large'], attrs={'readonly': '', 'class': 'form-control'}) }}
+  {% endblock %}
+
+  {% block offering_data_use_type %}
+    {{ form.select('data_use_type', id='field-data-use-type', label=_('Data use type'), options=[
+        {'value': '', 'text': ''},
+        {'value': 'Service delivery', 'text': _('Service delivery')},
+        {'value': 'Statistical analysis', 'text': _('Statistical analysis')},
+        {'value': 'Situational insights', 'text': _('Situational insights')}
+      ], selected=data_use_type if data_use_type else '', error=errors['Data use type'], is_required=True) }}
   {% endblock %}
 
   {% block offering_description %}
-    {{ form.markdown('description', id='field-description', label=_('Description'), placeholder=_('eg. Data Request description'), value=description, error=errors['Description'], is_required=description_required) }}
+    {% call form.markdown('description', id='field-description', label=_('Purpose of data use'), value=description, error=errors['Purpose of data use'], is_required=True) %}
+      {{ form.info(_('State the Project name and include the aim and the value proposition')) }}
+    {% endcall %}
   {% endblock %}
 
-  {% block offering_organizations %}
-  <div class="control-group form-group">
-    <label for="field-organizations" class="control-label">{{ _('Organization') }}</label>
-    <div class="controls">
-      <select id="field-organizations" name="organization_id" data-module="autocomplete">
-        {% if h.check_config_permission('create_unowned_dataset') %}
-           <option value="" {% if not selected_org and data.id %} selected="selected" {% endif %}>{{ _('No organization') }}</option>
-        {% endif %}
-        {% for organization in organizations_available %}
-          {% set selected_org = (organization.id == organization_id)  %}
-          <option value="{{ organization.id }}" {% if selected_org %} selected="selected" {% endif %}>{{ organization.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-  </div>
+  {% block offering_who_will_access_this_data %}
+    {% call form.markdown('who_will_access_this_data', id='field-who-will-access-this-data', label=_('Who will access this data'), value=who_will_access_this_data, error=errors['Who will access this data'], is_required=True) %}
+      {{ form.info(_('Example: Data analysts working on the project.')) }}
+    {% endcall %}
+  {% endblock %}
+
+  {% block offering_requesting_organisation %}
+    {{ form.select('requesting_organisation', id='field-requesting-organisation', label=_('Requesting organisation'), options=requesting_organisation_options, selected=requesting_organisation if requesting_organisation else '', error=errors['Requesting organisation'], is_required=True, attrs={'data-module' : 'autocomplete'}) }}
+  {% endblock %}
+
+  {% block offering_data_storage_environment %}
+    {% call form.markdown('data_storage_environment', id='field-data-storage-environment', label=_('Data storage environment'), value=data_storage_environment, error=errors['Data storage environment'], is_required=True) %}
+      {{ form.info(_('State the data storage environment details and if compliant with QLD Government Cyber Security requirements.')) }}
+    {% endcall %}
+  {% endblock %}
+
+  {% block offering_data_outputs_type %}
+    {{ form.select('data_outputs_type', id='field-data-output-type', label=_('Data outputs type'), options=[
+        {'value': '', 'text': ''},
+        {'value': 'New dataset', 'text': _('New dataset')},
+        {'value': 'Improved original dataset', 'text': _('Improved original dataset')},
+        {'value': 'Report', 'text': _('Report')},
+        {'value': 'Insight', 'text': _('Insight')},
+        {'value': 'Outcome', 'text': _('Outcome')},
+        {'value': 'Algorithm', 'text': _('Algorithm')},
+        {'value': 'Other (Describe below)', 'text': _('Other (Describe below)')}
+      ], selected=data_outputs_type if data_outputs_type else '', error=errors['Data outputs type'], is_required=True) }}
+  {% endblock %}
+
+  {% block offering_data_outputs_description %}
+    {% call form.markdown('data_outputs_description', id='field-data-outputs-description', label=_('Data outputs description'), value=data_outputs_description, error=errors['Data outputs description'], is_required=True) %}
+      {{ form.info(_('Other Data output type, will personal information be included, what is the intended audience for the outputs, and will any data be made open?')) }}
+    {% endcall %}
+  {% endblock %}
+
+  {% block offering_status %}
+    {% if show_status %}
+      {{ form.select('status', id='field-status', label=_('Status'), options=h.get_status_list(), selected=status if status else '', error=errors['Status'], is_required=True) }}
+    {% endif %}
   {% endblock %}
 
   {% if g.recaptcha_publickey %}

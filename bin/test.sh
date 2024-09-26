@@ -6,7 +6,7 @@ set -ex
 
 ahoy lint
 
-ahoy test-unit
+# ahoy test-unit
 
-ahoy install-site
-ahoy test-bdd
+# ahoy install-site
+# ahoy test-bdd

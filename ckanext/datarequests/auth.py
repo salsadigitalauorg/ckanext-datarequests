@@ -18,9 +18,11 @@
 # along with CKAN Data Requests Extension. If not, see <http://www.gnu.org/licenses/>.
 
 from ckan import authz
-from ckan.plugins.toolkit import asbool, auth_allow_anonymous_access, config, get_action
+from ckan.plugins.toolkit import current_user, h
+from ckan.plugins.toolkit import asbool, auth_allow_anonymous_access, config, get_action, auth_sysadmins_check
 
-from . import constants
+from . import constants, db
+from .actions import _dictize_datarequest
 
 
 def create_datarequest(context, data_dict):
@@ -41,6 +43,18 @@ def _is_any_group_member(context):
 
 @auth_allow_anonymous_access
 def show_datarequest(context, data_dict):
+    if not current_user.sysadmin:
+        result = db.DataRequest.get(id=data_dict.get('id'))
+        data_req = result[0]
+        data_dict = _dictize_datarequest(data_req)
+        if data_dict.get('user_id', None) == current_user.id:
+            return {'success': True}
+
+        organization_id = data_dict.get('organization_id', None)
+        current_user_orgs = [org['id'] for org in h.organizations_available('read')] or []
+        if organization_id not in current_user_orgs:
+            return {'success': False}
+
     return {'success': True}
 
 
@@ -53,8 +67,28 @@ def auth_if_creator(context, data_dict, show_function):
     return {'success': data_dict['user_id'] == context.get('auth_user_obj').id}
 
 
+def auth_if_editor_or_admin(context, data_dict, show_function):
+    # Sometimes data_dict only contains the 'id'
+    if 'user_id' not in data_dict:
+        function = get_action(show_function)
+        data_dict = function({'ignore_auth': True}, {'id': data_dict.get('id')})
+
+    is_editor_or_admin = False
+    current_user_id = current_user.id if current_user else None
+    for user in data_dict['organization']['users']:
+        if user['id'] == current_user_id and user['capacity'] in ['editor', 'admin']:
+            is_editor_or_admin = True
+            break
+
+    return {'success': is_editor_or_admin}
+
+
 def update_datarequest(context, data_dict):
-    return auth_if_creator(context, data_dict, constants.SHOW_DATAREQUEST)
+    is_current_creator = auth_if_creator(context, data_dict, constants.SHOW_DATAREQUEST)
+    if (is_current_creator['success'] is True):
+        return is_current_creator
+
+    return auth_if_editor_or_admin(context, data_dict, constants.SHOW_DATAREQUEST)
 
 
 @auth_allow_anonymous_access
@@ -66,8 +100,10 @@ def delete_datarequest(context, data_dict):
     return auth_if_creator(context, data_dict, constants.SHOW_DATAREQUEST)
 
 
+@auth_sysadmins_check
 def close_datarequest(context, data_dict):
-    return auth_if_creator(context, data_dict, constants.SHOW_DATAREQUEST)
+    # Close data request feature is removed in this project.
+    return {'success': False}
 
 
 def comment_datarequest(context, data_dict):

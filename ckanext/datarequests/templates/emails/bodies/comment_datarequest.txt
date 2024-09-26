@@ -1,0 +1,8 @@
+A new data access request comment has been added.
+To view or reply to this comment, follow this link: {{ site_url }}/datarequest/comment/{{ datarequest.id }}
+
+Comment: {{ comment.comment }}
+
+User: {{ comment.user.fullname or comment.user.name }}
+
+Do not reply to this email.

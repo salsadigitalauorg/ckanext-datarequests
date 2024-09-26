@@ -1,0 +1,14 @@
+A data access request has been deleted.  This is a soft delete and the details will remain on the portal database.  This notification is for record keeping purposes only.
+
+Data Request Creator: {{ datarequest.user.name }}
+Requested data: {{ datarequest.title }} ({{ datarequest.requested_dataset }})
+Data use type: {{ datarequest.data_use_type }}
+Purpose of data use: {{ datarequest.description }}
+Who will access this data: {{ datarequest.who_will_access_this_data }}
+Requesting organisation: {{ datarequest.requesting_organisation_dict.name }} ({{ datarequest.requesting_organisation }})
+Data storage environment: {{ datarequest.data_storage_environment }}
+Data outputs type: {{ datarequest.data_outputs_type }}
+Data outputs description: {{ datarequest.data_outputs_description }}
+Status: {{ datarequest.status }}
+
+Do not reply to this email.

@@ -15,10 +15,6 @@
     {% link_for _('Manage'), named_route='datarequest.update', id=datarequest_id, class_='btn btn-default', icon='wrench' %}
   {% endif %}
 
-  {% if h.check_access('close_datarequest', {'id':datarequest_id }) and not c.datarequest.closed %}
-    {% link_for _('Close'), named_route='datarequest.close', id=datarequest_id, class_='btn btn-danger', icon='lock' %}
-  {% endif %}
-
 {% endblock %}
 
 {% block content_primary_nav %}
@@ -39,18 +35,6 @@
 {% endblock %}
 
 {% block primary_content_inner %}
-    {% if c.datarequest.closed %}
-      <span class="uppercase label label-closed pull-right">
-        <i class="icon-lock fa fa-lock"></i>
-        {{ _('Closed') }}
-      </span>
-    {% else %}
-      <span class="uppercase label label-open pull-right">
-        <i class="icon-unlock fa fa-unlock"></i>
-        {{ _('Open') }}
-      </span>
-    {% endif %}
-
   <h1 class="{% block page_heading_class %}page-heading{% endblock %}">{% block page_heading %}{{ c.datarequest.get('title') }}{% endblock %}</h1>
 
   {% block datarequest_description %}
