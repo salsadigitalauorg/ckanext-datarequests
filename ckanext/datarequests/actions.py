@@ -73,7 +73,7 @@ def _get_package(package_id):
         log.warning(e)
 
 
-def _dictize_datarequest(datarequest):
+def _dictize_datarequest(datarequest, user_keep_email=False):
     # Transform time
     open_time = str(datarequest.open_time)
     # Close time can be None and the transformation is only needed when the
@@ -92,7 +92,7 @@ def _dictize_datarequest(datarequest):
         'accepted_dataset_id': datarequest.accepted_dataset_id,
         'close_time': close_time,
         'closed': datarequest.closed,
-        'user': _get_user(datarequest.user_id),
+        'user': _get_user(datarequest.user_id, user_keep_email),
         'organization': None,
         'accepted_dataset': None,
         'followers': 0,
@@ -199,8 +199,9 @@ def _send_mail(action_type, datarequest, job_title=None, context=None, comment=N
             })
 
     def get_datarequest_creator():
-        requester_email = datarequest['user']['email']
-        requester_name = datarequest['user']['name']
+        user = datarequest.get('user')
+        requester_email = user.get('email')
+        requester_name = datarequest.get('name')
         if requester_email:
             user_list.append({
                 'email': requester_email,
@@ -464,7 +465,7 @@ def update_datarequest(context, data_dict):
     session.add(data_req)
     session.commit()
 
-    datarequest_dict = _dictize_datarequest(data_req)
+    datarequest_dict = _dictize_datarequest(data_req, user_keep_email=True)
 
     # Send follower and email notifications if there is changes in the data request
     if has_changes:
@@ -765,7 +766,7 @@ def comment_datarequest(context, data_dict):
     comment_dict = _dictize_comment(comment)
 
     # Send emails
-    datarequest_dict = _dictize_datarequest(db.DataRequest.get(id=datarequest_id)[0])
+    datarequest_dict = _dictize_datarequest(db.DataRequest.get(id=datarequest_id)[0], user_keep_email=True)
     _send_mail('comment_datarequest', datarequest_dict, 'Data Request Comment Email', context, comment_dict)
 
     return comment_dict
