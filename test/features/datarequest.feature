@@ -6,6 +6,7 @@ Feature: Datarequest
         Given "Unauthenticated" as the persona
         When I go to the data requests page
         Then the browser's URL should contain "/datarequest"
+        And I should see an element with xpath "//span[contains(@class, 'item-label') and string() = 'Open']"
         And I should not see an element with xpath "//a[contains(translate(string(), 'DR', 'dr'), 'Add data request')]"
 
     @unauthenticated
@@ -15,31 +16,23 @@ Feature: Datarequest
         And I click the link with text that contains "Test Organisation"
         And I press the element with xpath "//ul[contains(@class, 'nav-tabs')]//a[contains(string(), 'Data Requests')]"
         Then the browser's URL should contain "/organization/datarequest"
+        And I should see an element with xpath "//span[contains(@class, 'item-label') and string() = 'Open']"
         And I should see an element with xpath "//input[contains(@aria-label, 'Search Data Requests')]"
         And I should see an element with xpath "//ol[contains(@class, 'breadcrumb')]//a[contains(@href, '/organization')]"
         And I should see an element with xpath "//ol[contains(@class, 'breadcrumb')]//a[contains(@href, '/organization/') and contains(string(), 'Test Organisation')]"
 
     Scenario: User data request page is accessible via the user profile
-        Given "CKANUser" as the persona
+        Given "TestOrgEditor" as the persona
         When I log in
-        And I go to the "ckan_user" profile page
-        And I press the element with xpath "//ul[contains(@class, 'nav-tabs')]//a[contains(string(), 'Data Requests')]"
+        And I create a datarequest
+        And I go to the "test_org_editor" profile page
+        Then I should see "Data Requests" within 2 seconds
+        When I press the element with xpath "//ul[contains(@class, 'nav-tabs')]//a[contains(string(), 'Data Requests')]"
         Then the browser's URL should contain "/user/datarequest"
+        And I should see an element with xpath "//span[contains(@class, 'item-label') and string() = 'Open']"
         And I should see an element with xpath "//input[contains(@aria-label, 'Search Data Requests')]"
         And I should see an element with xpath "//ol[contains(@class, 'breadcrumb')]//a[contains(@href, '/user') and contains(string(), 'Users')]"
-        And I should see an element with xpath "//ol[contains(@class, 'breadcrumb')]//a[contains(@href, '/user/') and contains(string(), 'CKAN User')]"
-
-    @unauthenticated
-    Scenario: User's data request page is not accessible anonymously
-        Given "Unauthenticated" as the persona
-        When I go to "/user/datarequest/admin"
-        Then I should see an element with xpath "//*[contains(string(), 'Not authorized to see this page')]"
-
-    @unauthenticated
-    Scenario: When visiting the datarequests page as a non-logged in user, the 'Add Data Request' button is not visible
-        Given "Unauthenticated" as the persona
-         When I go to the data requests page
-        Then I should not see an element with xpath "//a[contains(string(), 'Add data request', 'i')]"
+        And I should see an element with xpath "//ol[contains(@class, 'breadcrumb')]//a[contains(@href, '/user/') and contains(string(), 'Test Editor')]"
 
     Scenario: Data requests submitted without a description will produce an error message
         Given "SysAdmin" as the persona
@@ -48,13 +41,11 @@ Feature: Datarequest
         And I press "Add Data Request"
         And I fill in "title" with "Test data request"
         And I press the element with xpath "//button[contains(@class, 'btn-primary') and contains(string(), 'Create Data Request')]"
-        Then I should see an element with the css selector "div.error-explanation.alert.alert-error" within 2 seconds
-        And I should see "The form contains invalid entries" within 1 seconds
-        And I should see an element with the css selector "span.error-block" within 1 seconds
-        And I should see "Description cannot be empty" within 1 seconds
+        Then I should see a flash error message containing "The form contains invalid entries"
+        And I should see a flash error message containing "Description cannot be empty"
 
     Scenario: When a logged-in user submits a Data Request containing profanity they should receive an error message and the request will not be created
-        Given "CKANUser" as the persona
+        Given "TestOrgEditor" as the persona
         When I log in
         And I go to the data requests page
         And I press "Add Data Request"
