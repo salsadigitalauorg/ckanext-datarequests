@@ -48,6 +48,33 @@ Set `ALLOW_LINT_FAIL=1` in `.env` to allow lint failures.
 
 Set `ALLOW_UNIT_FAIL=1` in `.env` to allow unit test failures.
 
+## Running the unit tests locally
+
+The `ckan/ckan-dev` images are published for amd64 only, so on Apple Silicon
+export `DOCKER_DEFAULT_PLATFORM=linux/amd64` first. `ahoy build` also pulls a
+Selenium image with no arm64 build, so drive Docker Compose directly and skip
+the `chrome` service:
+
+```
+export DOCKER_DEFAULT_PLATFORM=linux/amd64 CKAN_VERSION=2.12 SOLR_VERSION=9
+sed "s|{CKAN_VERSION}|$CKAN_VERSION|g; s|{PYTHON_VERSION}|py3|g; s|{PYTHON}|python3|g" \
+  .docker/Dockerfile-template.ckan > .docker/Dockerfile.ckan
+docker compose build ckan
+docker compose up -d postgres solr redis
+docker compose run --rm -v "$PWD/ckanext:/srv/app/ckanext" ckan sh -c \
+  '. $APP_DIR/bin/activate && cd $APP_DIR && ckan -c $CKAN_INI db init && pytest --ckan-ini=$CKAN_INI ckanext'
+```
+
+Use `SOLR_VERSION=8` for CKAN 2.10. Run one CKAN version's stack at a time:
+every stack joins the shared `amazeeio-network` with a service named
+`postgres`, so two running stacks make that hostname resolve to either
+database. The `ckanext` mount picks up local edits without rebuilding.
+
+CDP-specific tests live under `ckanext/datarequests/tests/cdp/`. Upstream
+tests that assert behaviour this fork deliberately changes are listed, with
+reasons, in `ckanext/datarequests/tests/cdp/deselected-upstream-tests.txt` and
+skipped by `ckanext/conftest.py`.
+
 ## Behavioral tests
 `ahoy test-bdd`
 
