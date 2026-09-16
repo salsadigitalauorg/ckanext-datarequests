@@ -267,12 +267,11 @@ ckan.datarequests.show_datarequests_badge = [true|false]
 ```
 ckan.datarequests.description_required = [True|False]
 ```
-* Adjust notification settings if needed.
+* Turn every Data Request notification email off with one setting (default
+  `true`). Environments that send real mail but are not production, such as
+  develop, must run with it off so the support team is not emailed by tests.
 ```
-# Whether notifications go to all affected organisation members, or just admins
-ckanext.datarequests.notify_all_members
-# Whether notifications are sent when a data request is updated
-ckanext.datarequests.notify_on_update
+ckanext.datarequests.send_notifications = false
 ```
 * Declare the form fields beyond title, description and organisation that the
   Data Request form collects. Only fields named here reach the action layer, so

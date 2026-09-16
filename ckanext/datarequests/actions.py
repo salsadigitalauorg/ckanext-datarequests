@@ -179,7 +179,14 @@ def _get_datarequest_followers(context, datarequest_dict):
     return users
 
 
+def notifications_enabled():
+    return tk.asbool(config.get('ckanext.datarequests.send_notifications', True))
+
+
 def _send_mail(action_type, datarequest, job_title=None, context=None, comment=None):
+    if not notifications_enabled():
+        return
+
     user_list = []
 
     def get_catalog_support_team():

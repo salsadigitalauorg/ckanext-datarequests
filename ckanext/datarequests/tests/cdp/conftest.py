@@ -77,6 +77,7 @@ class Scenario:
         self.editor = Api(app, factories.UserWithToken())
         self.member = Api(app, factories.UserWithToken())
         self.outsider = Api(app, factories.UserWithToken())
+        self.follower = Api(app, factories.UserWithToken())
         self.owning_org = factories.Organization(users=[
             {"name": self.editor.user["name"], "capacity": "editor"},
             {"name": self.member.user["name"], "capacity": "member"},
@@ -100,6 +101,9 @@ class Scenario:
 
     def listing_ids(self, api, **params):
         return [item["id"] for item in api.call("list_datarequests", **params)["result"]]
+
+    def follow(self, datarequest):
+        self.follower.call("follow_datarequest", id=datarequest["id"])
 
 
 @pytest.fixture
