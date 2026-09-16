@@ -90,12 +90,16 @@ class Scenario:
         self.dataset = factories.Dataset(owner_org=self.owning_org["id"])
         self.other_dataset = factories.Dataset(owner_org=self.other_org["id"])
 
-    def fields(self, **overrides):
-        return form_fields(self.dataset, self.other_org, **overrides)
+    def fields(self, dataset=None, requesting_org=None, **overrides):
+        return form_fields(dataset or self.dataset, requesting_org or self.other_org, **overrides)
 
-    def create(self, api=None, **overrides):
+    def create(self, api=None, dataset=None, requesting_org=None, **overrides):
+        """Create a Data Request as `api` (the requester by default) and return it."""
         api = api or self.requester
-        return api.call("create_datarequest", **self.fields(**overrides))
+        return api.call("create_datarequest", **self.fields(dataset, requesting_org, **overrides))
+
+    def listing_ids(self, api, **params):
+        return [item["id"] for item in api.call("list_datarequests", **params)["result"]]
 
 
 @pytest.fixture
