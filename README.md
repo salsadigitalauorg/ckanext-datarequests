@@ -42,9 +42,9 @@ git merge <tag>
 
 Merge a release tag, never rebase: the fork's history must keep sharing an
 ancestor with upstream so that the following sync is a merge too. Expect
-conflicts in the CI workflow (take upstream's file as is), the controller, the
-database model, the helpers module and the comment, edit, new, show and
-organisation listing templates. Resolve each to the fork's behaviour expressed
+conflicts in the CI workflow (take upstream's file as is), the test config in
+`.docker/test.ini`, the controller, the database model, the helpers module and
+the comment, edit, new, show and organisation listing templates. Resolve each to the fork's behaviour expressed
 with upstream's variable names, then run the tests on every CKAN version in
 the matrix (see "Running the unit tests locally"). Tag the merged `develop`
 as `qld-internal-<major>.<minor>.<patch>`: major for an upstream sync or a
@@ -328,8 +328,8 @@ ckan.datarequests.description_required = [True|False]
 * Set the fork's own options, listed under "Configuration" above.
 * Update the database schema
 ```
-ckan -c <config> datarequests init_db
-ckan -c <config> datarequests update_db
+ckan -c <config> datarequests init-db
+ckan -c <config> datarequests update-db
 ```
 * Restart your apache2 reserver
 ```
@@ -362,13 +362,8 @@ This will generate the required `mo` file. Once this file has been generated, co
 
 ## Tests
 
-This sofware contains a set of test to detect errors and failures. You can run this tests by running the following command (this command will generate coverage reports):
-```
-python setup.py nosetests
-```
-**Note:** The `test.ini` file contains a link to the CKAN `test-core.ini` file. You will need to change that link to the real path of the file in your system (generally `/usr/lib/ckan/default/src/ckan/test-core.ini`).
-
-**Note 2:** When creating a PR that includes code changes, please, ensure your new code is tested. No PR will be merged until the Travis CI system marks it as valid.
+See "Running the unit tests locally" above. Pull requests that change code
+must come with tests; the GitHub Actions matrix has to pass before merging.
 
 ## Changelog
 

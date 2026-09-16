@@ -6,7 +6,6 @@ scheming field the project adds to datasets, so it is not exercised here.
 """
 import pytest
 
-import ckan.plugins.toolkit as tk
 from ckan.lib import jobs
 
 SUPPORT_EMAIL = "support@example.com"
@@ -30,20 +29,13 @@ def mail_queue():
     return queue
 
 
-def _new_comment(api, datarequest, comment="A comment"):
-    return api.call("comment_datarequest", datarequest_id=datarequest["id"], comment=comment)
-
-
-def _edit(api, scenario, datarequest, **overrides):
-    return api.call("update_datarequest", id=datarequest["id"], **scenario.fields(**overrides))
+def _new_comment(client, datarequest, comment="A comment"):
+    return client.call("comment_datarequest", datarequest_id=datarequest["id"], comment=comment)
 
 
 @pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestNotificationRecipients:
-
-    def test_support_mailbox_comes_from_config(self):
-        assert tk.config.get("ckanext.datarequests.internal_data_catalogue_support_team_email") == SUPPORT_EMAIL
 
     def test_create_notifies_support(self, scenario, mail_queue):
         scenario.create(scenario.requester)
@@ -55,7 +47,7 @@ class TestNotificationRecipients:
         scenario.follow(datarequest)
         mail_queue.clear()
 
-        _edit(scenario.editor, scenario, datarequest, status="Processing")
+        scenario.update(scenario.editor, datarequest, status="Processing")
 
         assert mail_queue.recipients() == sorted([SUPPORT_EMAIL, scenario.requester.user["email"], scenario.follower.user["email"]])
 
@@ -64,7 +56,7 @@ class TestNotificationRecipients:
         scenario.follow(datarequest)
         mail_queue.clear()
 
-        _edit(scenario.requester, scenario, datarequest, description="Purpose, reworded")
+        scenario.update(scenario.requester, datarequest, description="Purpose, reworded")
 
         assert mail_queue.recipients() == sorted([SUPPORT_EMAIL, scenario.follower.user["email"]])
 
@@ -104,7 +96,7 @@ class TestNotificationsSwitchedOff:
     def test_no_event_enqueues_mail(self, scenario, mail_queue):
         datarequest = scenario.create(scenario.requester)
         scenario.follow(datarequest)
-        _edit(scenario.editor, scenario, datarequest, status="Processing")
+        scenario.update(scenario.editor, datarequest, status="Processing")
         _new_comment(scenario.editor, datarequest)
         _new_comment(scenario.requester, datarequest)
         scenario.requester.call("delete_datarequest", id=datarequest["id"])

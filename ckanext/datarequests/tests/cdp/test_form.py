@@ -1,12 +1,13 @@
 """The Data Request form, submitted through the page like a requester does."""
 import pytest
 
+from ckanext.datarequests.tests.cdp.conftest import redirect_target
+
 NEW_URL = "/datarequest/new"
 
 
 def _created_id(response):
-    assert response.status_code == 302, response.body
-    return response.headers["Location"].rstrip("/").rsplit("/", 1)[-1]
+    return redirect_target(response).rsplit("/", 1)[-1]
 
 
 @pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
@@ -38,8 +39,9 @@ class TestDataRequestForm:
 
         assert response.status_code == 200
         assert "Data use type cannot be empty" in response.body
-        for name in ("description", "who_will_access_this_data", "data_storage_environment", "data_outputs_description"):
+        for name in ("title", "description", "who_will_access_this_data", "data_storage_environment", "data_outputs_description"):
             assert submitted[name] in response.body, name
+        assert '<option value="{}" selected'.format(submitted["data_outputs_type"]) in response.body
         assert 'value="{}"'.format(submitted["requested_dataset"]) in response.body
         assert 'value="{}"'.format(submitted["organization_id"]) in response.body
         assert '<option value="{}" selected'.format(submitted["requesting_organisation"]) in response.body

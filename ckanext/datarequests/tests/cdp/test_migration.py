@@ -6,12 +6,10 @@ import pytest
 import sqlalchemy as sa
 from sqlalchemy import text
 
-import ckan.plugins.toolkit as tk
 from ckan import model
-from ckan.cli.cli import ckan as ckan_cli
 from ckan.tests import factories
 from ckanext.datarequests import constants
-from ckanext.datarequests.tests.cdp.conftest import Api
+from ckanext.datarequests.tests.cdp.conftest import Client, migrate_plugin_tables, run_datarequests_command
 
 CDP_COLUMNS = {
     "data_use_type",
@@ -46,16 +44,10 @@ def _columns():
     return {column["name"]: column for column in inspector.get_columns("datarequests")}
 
 
-def _run(cli, command):
-    result = cli.invoke(ckan_cli, ["datarequests", command])
-    assert result.exit_code == 0, result.output
-
-
 @pytest.fixture
 def legacy_database(clean_db, migrate_db_for):
     """A CKAN database holding one Data Request in the pre-fork table shape."""
-    if tk.check_ckan_version(min_version="2.11"):
-        migrate_db_for("activity")
+    migrate_plugin_tables(migrate_db_for)
     requester = factories.User()
     legacy_id = str(uuid.uuid4())
     model.Session.remove()
@@ -76,8 +68,8 @@ def legacy_database(clean_db, migrate_db_for):
 class TestMigration:
 
     def test_init_db_and_update_db_bring_a_legacy_table_up_to_date(self, app, cli, legacy_database):
-        _run(cli, "init-db")
-        _run(cli, "update-db")
+        run_datarequests_command(cli, "init-db")
+        run_datarequests_command(cli, "update-db")
 
         columns = _columns()
         assert CDP_COLUMNS | {"state"} <= set(columns)
@@ -85,16 +77,16 @@ class TestMigration:
         assert sa.inspect(model.meta.engine).has_table("datarequests_comments")
         assert sa.inspect(model.meta.engine).has_table("datarequests_followers")
 
-        listing = Api(app, factories.SysadminWithToken()).call("list_datarequests")
+        listing = Client(app, factories.SysadminWithToken()).call("list_datarequests")
         assert [item["id"] for item in listing["result"]] == [legacy_database]
         assert listing["result"][0]["title"] == "Legacy request"
 
     def test_update_db_is_idempotent(self, cli, legacy_database):
-        _run(cli, "init-db")
-        _run(cli, "update-db")
+        run_datarequests_command(cli, "init-db")
+        run_datarequests_command(cli, "update-db")
         after_first = {name: str(column["type"]) for name, column in _columns().items()}
 
-        _run(cli, "update-db")
+        run_datarequests_command(cli, "update-db")
 
         after_second = {name: str(column["type"]) for name, column in _columns().items()}
         assert after_second == after_first

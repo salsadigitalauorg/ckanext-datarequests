@@ -36,7 +36,7 @@ class TestVisibleRules:
         scenario.create(scenario.member, dataset=scenario.other_dataset, requesting_org=scenario.owning_org)
         against_owning_org = scenario.create(scenario.requester)
         scenario.create(scenario.outsider, dataset=scenario.other_dataset)
-        scenario.editor.call("update_datarequest", id=against_owning_org["id"], **scenario.fields(status="Processing"))
+        scenario.update(scenario.editor, against_owning_org, status="Processing")
 
         listing = scenario.member.call("list_datarequests")
 
@@ -79,7 +79,7 @@ class TestListingPages:
     def test_listing_page_has_status_facet_and_status_filter_narrows_results(self, scenario):
         assigned = scenario.create(scenario.requester, title="Request still assigned")
         processing = scenario.create(scenario.editor, title="Request being processed")
-        scenario.editor.call("update_datarequest", id=processing["id"], **scenario.fields(title=processing["title"], status="Processing"))
+        scenario.update(scenario.editor, processing, title=processing["title"], status="Processing")
 
         unfiltered = scenario.sysadmin.get("/datarequest")
         filtered = scenario.sysadmin.get("/datarequest", query_string={"status": "Processing"})
