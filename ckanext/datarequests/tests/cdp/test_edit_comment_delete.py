@@ -89,7 +89,8 @@ class TestDelete:
 
         assert _redirect_target(response) == "datarequest"
         listing = scenario.sysadmin.get("/datarequest")
-        assert "Request to withdraw" not in listing.body
-        row = model.Session.get(db.DataRequest, datarequest["id"])
-        assert row is not None
+        assert "Request to withdraw has been deleted" in listing.body
+        assert 'href="/datarequest/{}"'.format(datarequest["id"]) not in listing.body
+        assert scenario.listing_ids(scenario.sysadmin) == []
+        row = model.Session.query(db.DataRequest).filter_by(id=datarequest["id"]).one()
         assert row.state == "deleted"
