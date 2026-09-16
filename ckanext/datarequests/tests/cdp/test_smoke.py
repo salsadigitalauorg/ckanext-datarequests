@@ -3,7 +3,7 @@ import pytest
 from ckan.tests import factories
 
 
-@pytest.mark.ckan_config("ckan.plugins", "datarequests")
+@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestDataRequestPages:
 
