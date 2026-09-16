@@ -274,6 +274,13 @@ ckanext.datarequests.notify_all_members
 # Whether notifications are sent when a data request is updated
 ckanext.datarequests.notify_on_update
 ```
+* Declare the form fields beyond title, description and organisation that the
+  Data Request form collects. Only fields named here reach the action layer, so
+  a form that omits one leaves the validator's default in place. The Internal
+  Data Catalogue sets the eight CDP fields:
+```
+ckanext.datarequests.extra_fields = data_use_type who_will_access_this_data requesting_organisation data_storage_environment data_outputs_type data_outputs_description status requested_dataset
+```
 * Update the database schema
 ```
 ckan -c <config> datarequests init_db
