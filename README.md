@@ -1,7 +1,65 @@
 # ckanext-datarequests
-A custom CKAN extension for Data.Qld
 
-[![CircleCI](https://circleci.com/gh/qld-gov-au/ckanext-datarequests/tree/develop.svg?style=shield)](https://circleci.com/gh/qld-gov-au/ckanext-datarequests/tree/develop)
+Salsa Digital's fork of [qld-gov-au/ckanext-datarequests](https://github.com/qld-gov-au/ckanext-datarequests)
+for the Queensland Government Internal Data Catalogue. It adds the data access
+request workflow the catalogue uses: eight extra form fields, a Status that
+replaces upstream's open/closed state, visibility limited to the requester and
+the Owning Organisation, and notifications to the Internal Data Catalogue
+Support team.
+
+Releases are tagged `qld-internal-<major>.<minor>.<patch>` on this repository
+and pinned from the catalogue's `requirements.txt`. The package version inside
+`setup.py` follows upstream; the tag is the release identifier.
+
+[![Tests](https://github.com/salsadigitalauorg/ckanext-datarequests/actions/workflows/test.yml/badge.svg?branch=develop)](https://github.com/salsadigitalauorg/ckanext-datarequests/actions/workflows/test.yml)
+
+## Boundary rule
+
+Upstream-owned files are kept as close to upstream as possible so that the
+next sync is a plain merge. They may only carry:
+
+- the data model and migrations (`db.py`: the CDP columns, `state`, `update_db`)
+- dictize/undictize of the CDP fields and the Visible rules in list filtering (`actions.py`)
+- the form field pass-through hook, `ckanext.datarequests.extra_fields` (controller)
+- the notification switch, `ckanext.datarequests.send_notifications` (`actions.py`)
+- the plugin entry point in `setup.py`
+
+Everything else that is specific to the catalogue (templates, helpers, auth
+rules, validation, notification routing) belongs in the `datarequests_cdp`
+plugin, which will live in this repository next to `datarequests`. Until that
+plugin exists those behaviours still sit in the upstream files; do not add to
+them. The decision record is `docs/adr/0001-datarequests-fork-strategy.md` in
+the catalogue repository.
+
+## Syncing with upstream
+
+```
+git remote add qld https://github.com/qld-gov-au/ckanext-datarequests.git
+git fetch qld --tags
+git checkout -b feature/sync-upstream-<tag> develop
+git merge <tag>
+```
+
+Merge a release tag, never rebase: the fork's history must keep sharing an
+ancestor with upstream so that the following sync is a merge too. Expect
+conflicts in the CI workflow (take upstream's file as is), the test config in
+`.docker/test.ini`, the controller, the database model, the helpers module and
+the comment, edit, new, show and organisation listing templates. Resolve each to the fork's behaviour expressed
+with upstream's variable names, then run the tests on every CKAN version in
+the matrix (see "Running the unit tests locally"). Tag the merged `develop`
+as `qld-internal-<major>.<minor>.<patch>`: major for an upstream sync or a
+change to the supported CKAN versions, minor for new behaviour, patch for fixes.
+
+## Configuration
+
+Settings this fork adds on top of upstream's:
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `ckanext.datarequests.extra_fields` | empty | Form fields beyond title, description and organisation that the POST handler passes to the action layer. The catalogue sets the eight CDP fields. |
+| `ckanext.datarequests.send_notifications` | `true` | Set to `false` to send no Data Request notification email from that environment. Develop runs with it off. |
+| `ckanext.datarequests.internal_data_catalogue_support_team_email` | unset | Mailbox notified on every Data Request event. |
+| `ckanext.datarequests.internal_data_catalogue_support_team_name` | unset | Display name for that mailbox. |
 
 ## Local environment setup
 - Make sure that you have latest versions of all required software installed:
@@ -43,10 +101,37 @@ Python code linting uses [flake8](https://github.com/PyCQA/flake8) with configur
 
 Set `ALLOW_LINT_FAIL=1` in `.env` to allow lint failures.
 
-## Nose tests
+## Unit tests
 `ahoy test-unit`
 
 Set `ALLOW_UNIT_FAIL=1` in `.env` to allow unit test failures.
+
+## Running the unit tests locally
+
+The `ckan/ckan-dev` images are published for amd64 only, so on Apple Silicon
+export `DOCKER_DEFAULT_PLATFORM=linux/amd64` first. `ahoy build` also pulls a
+Selenium image with no arm64 build, so drive Docker Compose directly and skip
+the `chrome` service:
+
+```
+export DOCKER_DEFAULT_PLATFORM=linux/amd64 CKAN_VERSION=2.12 SOLR_VERSION=9
+sed "s|{CKAN_VERSION}|$CKAN_VERSION|g; s|{PYTHON_VERSION}|py3|g; s|{PYTHON}|python3|g" \
+  .docker/Dockerfile-template.ckan > .docker/Dockerfile.ckan
+docker compose build ckan
+docker compose up -d postgres solr redis
+docker compose run --rm -v "$PWD/ckanext:/srv/app/ckanext" ckan sh -c \
+  '. $APP_DIR/bin/activate && cd $APP_DIR && ckan -c $CKAN_INI db init && pytest --ckan-ini=$CKAN_INI ckanext'
+```
+
+Use `SOLR_VERSION=8` for CKAN 2.10. Run one CKAN version's stack at a time:
+every stack joins the shared `amazeeio-network` with a service named
+`postgres`, so two running stacks make that hostname resolve to either
+database. The `ckanext` mount picks up local edits without rebuilding.
+
+CDP-specific tests live under `ckanext/datarequests/tests/cdp/`. Upstream
+tests that assert behaviour this fork deliberately changes are listed, with
+reasons, in `ckanext/datarequests/tests/cdp/deselected-upstream-tests.txt` and
+skipped by `ckanext/conftest.py`.
 
 ## Behavioral tests
 `ahoy test-bdd`
@@ -240,17 +325,11 @@ ckan.datarequests.show_datarequests_badge = [true|false]
 ```
 ckan.datarequests.description_required = [True|False]
 ```
-* Adjust notification settings if needed.
-```
-# Whether notifications go to all affected organisation members, or just admins
-ckanext.datarequests.notify_all_members
-# Whether notifications are sent when a data request is updated
-ckanext.datarequests.notify_on_update
-```
+* Set the fork's own options, listed under "Configuration" above.
 * Update the database schema
 ```
-ckan -c <config> datarequests init_db
-ckan -c <config> datarequests update_db
+ckan -c <config> datarequests init-db
+ckan -c <config> datarequests update-db
 ```
 * Restart your apache2 reserver
 ```
@@ -283,13 +362,8 @@ This will generate the required `mo` file. Once this file has been generated, co
 
 ## Tests
 
-This sofware contains a set of test to detect errors and failures. You can run this tests by running the following command (this command will generate coverage reports):
-```
-python setup.py nosetests
-```
-**Note:** The `test.ini` file contains a link to the CKAN `test-core.ini` file. You will need to change that link to the real path of the file in your system (generally `/usr/lib/ckan/default/src/ckan/test-core.ini`).
-
-**Note 2:** When creating a PR that includes code changes, please, ensure your new code is tested. No PR will be merged until the Travis CI system marks it as valid.
+See "Running the unit tests locally" above. Pull requests that change code
+must come with tests; the GitHub Actions matrix has to pass before merging.
 
 ## Changelog
 

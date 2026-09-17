@@ -22,10 +22,12 @@ import uuid
 import logging
 
 from ckan import model
+from ckan.model.meta import metadata
 from ckan.plugins.toolkit import current_user, h
 from ckanext.datarequests import constants
 
-from sqlalchemy import func, MetaData, DDL
+from sqlalchemy import func
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql import case
 from sqlalchemy.sql.expression import or_
 
@@ -33,25 +35,80 @@ from . import common
 
 log = logging.getLogger(__name__)
 
+Base = declarative_base(metadata=metadata)
+
 
 def uuid4():
     return str(uuid.uuid4())
 
 
-class DataRequest(model.core.StatefulObjectMixin, model.DomainObject):
+closing_circumstances_enabled = common.get_config_bool_value('ckan.datarequests.enable_closing_circumstances', False)
+
+datarequests_table = sa.Table('datarequests', metadata,
+                              sa.Column('user_id', sa.types.UnicodeText, primary_key=False, default=u''),
+                              sa.Column('id', sa.types.UnicodeText, primary_key=True, default=uuid4),
+                              sa.Column('title', sa.types.Unicode(constants.NAME_MAX_LENGTH), primary_key=True, default=u''),
+                              sa.Column('description', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
+                              sa.Column('organization_id', sa.types.UnicodeText, primary_key=False, default=None),
+                              sa.Column('open_time', sa.types.DateTime, primary_key=False, default=None),
+                              sa.Column('accepted_dataset_id', sa.types.UnicodeText, primary_key=False, default=None),
+                              sa.Column('close_time', sa.types.DateTime, primary_key=False, default=None),
+                              sa.Column('closed', sa.types.Boolean, primary_key=False, default=False),
+                              sa.Column('close_circumstance', sa.types.Unicode(constants.CLOSE_CIRCUMSTANCE_MAX_LENGTH), primary_key=False, default=u'')
+                              if closing_circumstances_enabled else None,
+                              sa.Column('approx_publishing_date', sa.types.DateTime, primary_key=False, default=None)
+                              if closing_circumstances_enabled else None,
+                              sa.Column('data_use_type', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
+                              sa.Column('who_will_access_this_data', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
+                              sa.Column('requesting_organisation', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
+                              sa.Column('data_storage_environment', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
+                              sa.Column('data_outputs_type', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
+                              sa.Column('data_outputs_description', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
+                              sa.Column('status', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u'Assigned'),
+                              sa.Column('requested_dataset', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
+                              sa.Column('state', sa.types.UnicodeText, default=model.core.State.ACTIVE),
+                              extend_existing=True,
+                              )
+
+comments_table = sa.Table('datarequests_comments', metadata,
+                          sa.Column('id', sa.types.UnicodeText, primary_key=True, default=uuid4),
+                          sa.Column('user_id', sa.types.UnicodeText, primary_key=False, default=u''),
+                          sa.Column('datarequest_id', sa.types.UnicodeText, primary_key=True, default=uuid4),
+                          sa.Column('time', sa.types.DateTime, primary_key=True, default=u''),
+                          sa.Column('comment', sa.types.Unicode(constants.COMMENT_MAX_LENGTH), primary_key=False, default=u''),
+                          extend_existing=True
+                          )
+
+followers_table = sa.Table('datarequests_followers', metadata,
+                           sa.Column('id', sa.types.UnicodeText, primary_key=True, default=uuid4),
+                           sa.Column('user_id', sa.types.UnicodeText, primary_key=False, default=u''),
+                           sa.Column('datarequest_id', sa.types.UnicodeText, primary_key=True, default=uuid4),
+                           sa.Column('time', sa.types.DateTime, primary_key=True, default=u''),
+                           extend_existing=True
+                           )
+
+
+def _active(cls):
+    # Rows created before the state column existed are null and count as active.
+    return or_(cls.state == model.core.State.ACTIVE, cls.state.is_(None))
+
+
+class DataRequest(model.core.StatefulObjectMixin, model.DomainObject, Base):
+
+    __table__ = datarequests_table
 
     @classmethod
     def get(cls, **kw):
         '''Finds all the instances required.'''
         query = model.Session.query(cls).autoflush(False)
-        query = query.filter(or_(cls.state == model.core.State.ACTIVE, cls.state is None))
+        query = query.filter(_active(cls))
         return query.filter_by(**kw).all()
 
     @classmethod
     def datarequest_exists(cls, title):
         '''Returns true if there is a Data Request with the same title (case insensitive)'''
         query = model.Session.query(cls).autoflush(False)
-        query = query.filter(or_(cls.state == model.core.State.ACTIVE, cls.state is None))
+        query = query.filter(_active(cls))
         return query.filter(func.lower(cls.title) == func.lower(title)).first() is not None
 
     @classmethod
@@ -59,7 +116,7 @@ class DataRequest(model.core.StatefulObjectMixin, model.DomainObject):
         '''Personalized query'''
         query = model.Session.query(cls).autoflush(False)
         if state is None:
-            query = query.filter(or_(cls.state == model.core.State.ACTIVE, cls.state is None))
+            query = query.filter(_active(cls))
         else:
             query = query.filter_by(state=state)
 
@@ -85,36 +142,24 @@ class DataRequest(model.core.StatefulObjectMixin, model.DomainObject):
 
         order_by_filter = cls.open_time.desc() if desc else cls.open_time.asc()
 
-        # For sysadmins, we show all the data requests.
-        restricted_org_id = None
-
-        # If it is regular user, and the organization_id is not provided, filter it based on current user's organizations.
+        # Sysadmins see every request. Everyone else sees their own plus those
+        # of organisations they belong to.
         if not current_user.sysadmin:
             current_user_orgs = h.organizations_available('read') or []
-            restricted_org_id = [org['id'] for org in current_user_orgs]
+            member_org_ids = [org['id'] for org in current_user_orgs]
 
             if organization_id is None:
-                # If the organization_id is not provided, show the data requests created by the current user
-                # or all data request within the current user's organizations.
-                query = query.filter(or_(cls.user_id == current_user.id, cls.organization_id.in_(restricted_org_id)))
+                query = query.filter(or_(cls.user_id == current_user.id, cls.organization_id.in_(member_org_ids)))
+            elif organization_id not in member_org_ids:
+                query = query.filter(cls.user_id == current_user.id)
             else:
-                if organization_id not in restricted_org_id:
-                    # If the organization_id is not within the current user's organizations,
-                    # show only the data requests created by the current user.
-                    query = query.filter(cls.user_id == current_user.id)
-
-                    # Remove the organization_id from the filter.
-                    query = query.filter(cls.organization_id is not None)
-                else:
-                    # Else the organization_id is within the current user's organizations,
-                    # show the data requests created by the current user or all data request within selected organization.
-                    query = query.filter(or_(cls.user_id == current_user.id, cls.organization_id == organization_id))
+                query = query.filter(or_(cls.user_id == current_user.id, cls.organization_id == organization_id))
 
         current_user_id = current_user.id if current_user else None
         if current_user_id:
-            # Pinned the datarequest to the top of the list if current user is the author.
+            # Pin the current user's own requests to the top of the list.
             current_user_order = case(
-                [(cls.user_id == current_user_id, 1)],
+                (cls.user_id == current_user_id, 1),
                 else_=0
             ).label('current_user_order')
 
@@ -127,10 +172,12 @@ class DataRequest(model.core.StatefulObjectMixin, model.DomainObject):
     @classmethod
     def get_open_datarequests_number(cls):
         '''Returns the number of data requests that are open'''
-        return model.Session.query(func.count(cls.id)).filter_by(closed=False).filter(or_(cls.state == model.core.State.ACTIVE, cls.state is None)).scalar()
+        return model.Session.query(func.count(cls.id)).filter_by(closed=False).filter(_active(cls)).scalar()
 
 
-class Comment(model.DomainObject):
+class Comment(model.DomainObject, Base):
+
+    __table__ = comments_table
 
     @classmethod
     def get(cls, **kw):
@@ -153,7 +200,9 @@ class Comment(model.DomainObject):
         return model.Session.query(func.count(cls.id)).filter_by(**kw).scalar()
 
 
-class DataRequestFollower(model.DomainObject):
+class DataRequestFollower(model.DomainObject, Base):
+
+    __table__ = followers_table
 
     @classmethod
     def get(cls, **kw):
@@ -169,131 +218,51 @@ class DataRequestFollower(model.DomainObject):
         return model.Session.query(func.count(cls.id)).filter_by(**kw).scalar()
 
 
-closing_circumstances_enabled = common.get_config_bool_value('ckan.datarequests.enable_closing_circumstances', False)
-
-# FIXME: References to the other tables...
-datarequests_table = sa.Table('datarequests', model.meta.metadata,
-                              sa.Column('user_id', sa.types.UnicodeText, primary_key=False, default=u''),
-                              sa.Column('id', sa.types.UnicodeText, primary_key=True, default=uuid4),
-                              sa.Column('title', sa.types.Unicode(constants.NAME_MAX_LENGTH), primary_key=True, default=u''),
-                              sa.Column('description', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
-                              sa.Column('organization_id', sa.types.UnicodeText, primary_key=False, default=None),
-                              sa.Column('open_time', sa.types.DateTime, primary_key=False, default=None),
-                              sa.Column('accepted_dataset_id', sa.types.UnicodeText, primary_key=False, default=None),
-                              sa.Column('close_time', sa.types.DateTime, primary_key=False, default=None),
-                              sa.Column('closed', sa.types.Boolean, primary_key=False, default=False),
-                              sa.Column('close_circumstance', sa.types.Unicode(constants.CLOSE_CIRCUMSTANCE_MAX_LENGTH), primary_key=False, default=u'') if closing_circumstances_enabled else None,
-                              sa.Column('approx_publishing_date', sa.types.DateTime, primary_key=False, default=None) if closing_circumstances_enabled else None,
-                              sa.Column('data_use_type', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
-                              sa.Column('who_will_access_this_data', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
-                              sa.Column('requesting_organisation', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
-                              sa.Column('data_storage_environment', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
-                              sa.Column('data_outputs_type', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
-                              sa.Column('data_outputs_description', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
-                              sa.Column('status', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u'Assigned'),
-                              sa.Column('requested_dataset', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
-                              sa.Column('state', sa.types.UnicodeText, default=model.core.State.ACTIVE),
-                              extend_existing=True
-                              )
-
-model.meta.mapper(DataRequest, datarequests_table)
-
-# FIXME: References to the other tables...
-comments_table = sa.Table('datarequests_comments', model.meta.metadata,
-                          sa.Column('id', sa.types.UnicodeText, primary_key=True, default=uuid4),
-                          sa.Column('user_id', sa.types.UnicodeText, primary_key=False, default=u''),
-                          sa.Column('datarequest_id', sa.types.UnicodeText, primary_key=True, default=uuid4),
-                          sa.Column('time', sa.types.DateTime, primary_key=True, default=u''),
-                          sa.Column('comment', sa.types.Unicode(constants.COMMENT_MAX_LENGTH), primary_key=False, default=u''),
-                          extend_existing=True
-                          )
-
-model.meta.mapper(Comment, comments_table,)
-
-# FIXME: References to the other tables...
-followers_table = sa.Table('datarequests_followers', model.meta.metadata,
-                           sa.Column('id', sa.types.UnicodeText, primary_key=True, default=uuid4),
-                           sa.Column('user_id', sa.types.UnicodeText, primary_key=False, default=u''),
-                           sa.Column('datarequest_id', sa.types.UnicodeText, primary_key=True, default=uuid4),
-                           sa.Column('time', sa.types.DateTime, primary_key=True, default=u''),
-                           extend_existing=True
-                           )
-
-model.meta.mapper(DataRequestFollower, followers_table,)
-
-
 def init_db(deprecated_model=None):
 
-    # Create the table only if it does not exist
-    datarequests_table.create(checkfirst=True)
+    metadata.create_all(model.meta.engine, tables=[datarequests_table, comments_table, followers_table])
 
     update_db()
-
-    # Create the table only if it does not exist
-    comments_table.create(checkfirst=True)
-
-    # Create the table only if it does not exist
-    followers_table.create(checkfirst=True)
 
 
 def update_db(deprecated_model=None):
     '''
-    A place to make any datarequest table updates via SQL commands
-    This is required because adding new columns to sqlalchemy metadata will not get created if the table already exists
+    Add columns introduced after the datarequests table was first created.
+
+    The declared metadata always contains every column, so the live schema is
+    inspected instead.
     '''
+    engine = model.Session.get_bind()
+    inspector = sa.inspect(engine)
+    if not inspector.has_table('datarequests'):
+        return
 
-    meta = MetaData()
-    meta.reflect(model.Session.get_bind())
+    columns = {column['name']: column for column in inspector.get_columns('datarequests')}
 
-    # Check to see if columns exists and create them if they do not exists
+    new_columns = []
     if closing_circumstances_enabled:
-        if 'datarequests' in meta.tables:
-            if 'close_circumstance' not in meta.tables['datarequests'].columns:
-                log.info("DataRequests-UpdateDB: 'close_circumstance' field does not exist, adding...")
-                DDL('ALTER TABLE "datarequests" ADD COLUMN "close_circumstance" varchar({0}) NULL'.format(constants.CLOSE_CIRCUMSTANCE_MAX_LENGTH)).execute(model.Session.get_bind())
+        new_columns += [
+            ('close_circumstance', 'varchar({0}) NULL'.format(constants.CLOSE_CIRCUMSTANCE_MAX_LENGTH)),
+            ('approx_publishing_date', 'timestamp NULL'),
+        ]
+    new_columns += [
+        ('data_use_type', 'varchar(255) NULL'),
+        ('who_will_access_this_data', 'character varying(1000) NULL'),
+        ('requesting_organisation', 'text'),
+        ('data_storage_environment', 'character varying(1000) NULL'),
+        ('data_outputs_type', 'varchar(255) NULL'),
+        ('data_outputs_description', 'character varying(1000) NULL'),
+        ('status', 'varchar(255) NULL'),
+        ('requested_dataset', 'text'),
+        ('state', 'text'),
+    ]
 
-            if 'approx_publishing_date' not in meta.tables['datarequests'].columns:
-                log.info("DataRequests-UpdateDB: 'approx_publishing_date' field does not exist, adding...")
-                DDL('ALTER TABLE "datarequests" ADD COLUMN "approx_publishing_date" timestamp NULL').execute(model.Session.get_bind())
+    with engine.begin() as connection:
+        for name, column_type in new_columns:
+            if name not in columns:
+                log.info("DataRequests-UpdateDB: '%s' field does not exist, adding...", name)
+                connection.execute(sa.DDL('ALTER TABLE "datarequests" ADD COLUMN "{0}" {1}'.format(name, column_type)))
 
-    if 'datarequests' in meta.tables:
-        if 'data_use_type' not in meta.tables['datarequests'].columns:
-            log.info("DataRequests-UpdateDB: 'data_use_type' field does not exist, adding...")
-            DDL('ALTER TABLE "datarequests" ADD COLUMN "data_use_type" varchar(255) NULL').execute(model.Session.get_bind())
-
-        if 'who_will_access_this_data' not in meta.tables['datarequests'].columns:
-            log.info("DataRequests-UpdateDB: 'who_will_access_this_data' field does not exist, adding...")
-            DDL('ALTER TABLE "datarequests" ADD COLUMN "who_will_access_this_data" character varying(1000) NULL').execute(model.Session.get_bind())
-
-        if 'requesting_organisation' not in meta.tables['datarequests'].columns:
-            log.info("DataRequests-UpdateDB: 'requesting_organisation' field does not exist, adding...")
-            DDL('ALTER TABLE "datarequests" ADD COLUMN "requesting_organisation" text COLLATE pg_catalog."default";').execute(model.Session.get_bind())
-
-        if 'data_storage_environment' not in meta.tables['datarequests'].columns:
-            log.info("DataRequests-UpdateDB: 'data_storage_environment' field does not exist, adding...")
-            DDL('ALTER TABLE "datarequests" ADD COLUMN "data_storage_environment" character varying(1000) NULL').execute(model.Session.get_bind())
-
-        if 'data_outputs_type' not in meta.tables['datarequests'].columns:
-            log.info("DataRequests-UpdateDB: 'data_outputs_type' field does not exist, adding...")
-            DDL('ALTER TABLE "datarequests" ADD COLUMN "data_outputs_type" varchar(255) NULL').execute(model.Session.get_bind())
-
-        if 'data_outputs_description' not in meta.tables['datarequests'].columns:
-            log.info("DataRequests-UpdateDB: 'data_outputs_description' field does not exist, adding...")
-            DDL('ALTER TABLE "datarequests" ADD COLUMN "data_outputs_description" character varying(1000) NULL').execute(model.Session.get_bind())
-
-        if 'status' not in meta.tables['datarequests'].columns:
-            log.info("DataRequests-UpdateDB: 'status' field does not exist, adding...")
-            DDL('ALTER TABLE "datarequests" ADD COLUMN "status" varchar(255) NULL').execute(model.Session.get_bind())
-
-        if 'requested_dataset' not in meta.tables['datarequests'].columns:
-            log.info("DataRequests-UpdateDB: 'requested_dataset' field does not exist, adding...")
-            DDL('ALTER TABLE "datarequests" ADD COLUMN "requested_dataset" text COLLATE pg_catalog."default";').execute(model.Session.get_bind())
-
-        # change the title field to 1000 characters if it is still 100
-        if 'title' in meta.tables['datarequests'].columns and meta.tables['datarequests'].columns['title'].type.length == 100:
-            log.info("DataRequests-UpdateDB: 'title' field exists and length is 100, changing to 1000 characters...")
-            DDL('ALTER TABLE "datarequests" ALTER COLUMN "title" TYPE varchar(1000)').execute(model.Session.get_bind())
-
-        if 'state' not in meta.tables['datarequests'].columns:
-            log.info("DataRequests-UpdateDB: 'state' field does not exist, adding...")
-            DDL('ALTER TABLE "datarequests" ADD COLUMN "state" text COLLATE pg_catalog."default";').execute(model.Session.get_bind())
+        if 'title' in columns and getattr(columns['title']['type'], 'length', None) == 100:
+            log.info("DataRequests-UpdateDB: 'title' field length is 100, changing to %d...", constants.NAME_MAX_LENGTH)
+            connection.execute(sa.DDL('ALTER TABLE "datarequests" ALTER COLUMN "title" TYPE varchar({0})'.format(constants.NAME_MAX_LENGTH)))
