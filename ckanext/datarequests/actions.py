@@ -20,7 +20,6 @@
 
 import datetime
 import logging
-
 try:
     from html import escape
 except ImportError:
@@ -29,6 +28,7 @@ except ImportError:
 from ckan import authz, model
 from ckan.lib import mailer
 from ckan.lib.redis import connect_to_redis
+# CDP: plugin_loaded for the notification switch, current_user for the listing rules.
 from ckan.plugins import plugin_loaded, toolkit as tk
 from ckan.plugins.toolkit import h, config, current_user
 
@@ -96,6 +96,7 @@ def _dictize_datarequest(datarequest):
         'organization': None,
         'accepted_dataset': None,
         'followers': 0,
+        # CDP: the extra form fields, Status and the requested dataset.
         'data_use_type': datarequest.data_use_type,
         'who_will_access_this_data': datarequest.who_will_access_this_data,
         'requesting_organisation': datarequest.requesting_organisation,
@@ -104,6 +105,7 @@ def _dictize_datarequest(datarequest):
         'data_outputs_description': datarequest.data_outputs_description,
         'status': datarequest.status,
         'requested_dataset': datarequest.requested_dataset,
+        # CDP: end
     }
 
     if datarequest.organization_id:
@@ -129,7 +131,8 @@ def _undictize_datarequest_basic(datarequest, data_dict):
     datarequest.organization_id = organization if organization else None
     _undictize_datarequest_closing_circumstances(datarequest, data_dict)
 
-    # Absent when datarequests runs without datarequests_cdp, which is what requires them.
+    # CDP: store the extra fields. They are absent when datarequests runs
+    # without datarequests_cdp, which is what requires them.
     for field in (
         'data_use_type',
         'who_will_access_this_data',
@@ -141,6 +144,7 @@ def _undictize_datarequest_basic(datarequest, data_dict):
         'requested_dataset',
     ):
         setattr(datarequest, field, data_dict.get(field))
+    # CDP: end
 
 
 def _undictize_datarequest_closing_circumstances(datarequest, data_dict):
@@ -187,6 +191,7 @@ def _get_datarequest_involved_users(context, datarequest_dict):
     return users
 
 
+# CDP: the notification switch.
 def _notifications_enabled():
     # datarequests_cdp routes its own mail, so this plugin's stays quiet beside it.
     switched_on = config.get('ckanext.datarequests.send_notifications')
@@ -194,6 +199,7 @@ def _notifications_enabled():
 
 
 def _send_mail(user_ids, action_type, datarequest, job_title=None):
+    # CDP: the notification switch.
     if not _notifications_enabled():
         return
 
@@ -397,6 +403,7 @@ def update_datarequest(context, data_dict):
     data_req = result[0]
 
     # Avoid the validator to return an error when the user does not change the title
+    # CDP: datarequests_cdp turns the check off because requests share dataset titles.
     context['avoid_existing_title_check'] = context.get('avoid_existing_title_check') or data_req.title == data_dict['title']
 
     # Validate data
@@ -410,7 +417,7 @@ def update_datarequest(context, data_dict):
     # Set the data provided by the user in the data_red
     _undictize_datarequest_basic(data_req, data_dict)
 
-    # Rows written before the state column existed have no State; saving one makes it active.
+    # CDP: rows written before the state column existed have no State; saving one makes it active.
     data_req.state = model.State.ACTIVE
 
     session.add(data_req)
@@ -494,11 +501,10 @@ def list_datarequests(context, data_dict):
         # Get user ID (user name is received sometimes)
         user_id = user_show({'ignore_auth': True}, {'id': user_id}).get('id')
 
-    # Filter by status
+    # CDP: filter by Status in place of upstream's open/closed, and by State for soft delete.
     status = data_dict.get('status', None)
-
-    #  Filter by state
     state = data_dict.get('state', None)
+    # CDP: end
 
     # Free text filter
     q = data_dict.get('q', None)
@@ -511,6 +517,7 @@ def list_datarequests(context, data_dict):
         desc = True
 
     # Call the function
+    # CDP: status and state are passed in place of closed.
     db_datarequests = db.DataRequest.get_ordered_by_date(organization_id=organization_id,
                                                          user_id=user_id, status=status,
                                                          q=q, desc=desc, state=state)
@@ -524,6 +531,7 @@ def list_datarequests(context, data_dict):
 
     # Facets
     no_processed_organization_facet = {}
+    # CDP: a Status facet replaces upstream's open/closed facet.
     no_processed_status_facet = {
         'Assigned': 0,
         'Processing': 0,
@@ -540,6 +548,7 @@ def list_datarequests(context, data_dict):
 
         if status in no_processed_status_facet:
             no_processed_status_facet[status] += 1
+    # CDP: end
 
     # Format facets
     organization_facet = []
@@ -554,6 +563,7 @@ def list_datarequests(context, data_dict):
         except Exception:
             pass
 
+    # CDP: Status facet items.
     status_facet = []
     for status in no_processed_status_facet:
         if no_processed_status_facet[status]:
@@ -562,6 +572,7 @@ def list_datarequests(context, data_dict):
                 'display_name': tk._(status),
                 'count': no_processed_status_facet[status]
             })
+    # CDP: end
 
     result = {
         'count': len(db_datarequests),
@@ -571,14 +582,16 @@ def list_datarequests(context, data_dict):
 
     # Facets can only be included if they contain something
     if organization_facet:
-        # If not sysadmin, only show organizations where the current user is a member/editor/org admin.
+        # CDP: non-sysadmins only see facet entries for organisations they belong to.
         if not current_user.sysadmin:
             current_user_orgs = h.organizations_available('read')
             user_orgs = {org['name'] for org in current_user_orgs}
             organization_facet = [org for org in organization_facet if org['name'] in user_orgs]
+        # CDP: end
 
         result['facets']['organization'] = {'items': organization_facet}
 
+    # CDP: Status facet.
     if status_facet:
         result['facets']['status'] = {'items': status_facet}
 
@@ -616,6 +629,7 @@ def delete_datarequest(context, data_dict):
         raise tk.ObjectNotFound(tk._('Data Request %s not found in the data base') % datarequest_id)
 
     data_req = result[0]
+    # CDP: soft delete, so the row stays with State deleted.
     data_req.delete()
     session.commit()
 

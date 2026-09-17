@@ -48,8 +48,26 @@ Everything else belongs in `datarequests_cdp`. Check with:
 git diff <upstream tag> --stat -- ckanext/datarequests ':!ckanext/datarequests/tests'
 ```
 
-The decision record is `docs/adr/0001-datarequests-fork-strategy.md` in the
-catalogue repository.
+Every fork edit inside `ckanext/datarequests/` starts with a `# CDP:` comment
+giving its reason, and a block of several lines closes with `# CDP: end`. Edits
+that are general fixes rather than catalogue behaviour are tagged
+`# Fork, not CDP:`; drop one when upstream ships the same fix. List them all with:
+
+```
+grep -rnE "# (CDP|Fork, not CDP):" ckanext/datarequests --include=*.py
+```
+
+Keep the tags when resolving a merge conflict, and add one to any new edit.
+
+### Why a fork with two plugins
+
+The catalogue needs columns on the `datarequests` table and different listing
+queries, which a separate extension cannot add, so a fork is unavoidable.
+Upstream is actively maintained and carries the CKAN version upgrades, so the
+fork has to stay cheap to sync. Keeping catalogue behaviour in
+`datarequests_cdp` and only data-layer edits in upstream's files is what makes
+a sync a plain merge. Putting that behaviour in the catalogue's own extension
+was rejected because it would split one workflow across two repositories.
 
 ## Syncing with upstream
 

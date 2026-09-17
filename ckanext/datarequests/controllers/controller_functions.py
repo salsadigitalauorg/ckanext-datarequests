@@ -18,12 +18,14 @@ _link = re.compile(r'(?:(https?://)|(www\.))(\S+\b/?)([!"#$%&\'()*+,\-./:;<=>?@[
 
 log = logging.getLogger(__name__)
 
+# CDP: form field pass-through, ckanext.datarequests.extra_fields.
 BASE_FORM_FIELDS = ('title', 'description', 'organization_id')
 
 
 def _extra_form_fields():
     """Form fields beyond the upstream three that a deployment collects, declared in config."""
     return tk.aslist(tk.config.get('ckanext.datarequests.extra_fields', ''))
+# CDP: end
 
 
 def _get_errors_summary(errors):
@@ -65,6 +67,8 @@ def _get_context():
             'user': g.user, 'auth_user_obj': g.userobj}
 
 
+# CDP: in _show_index the listing filters on Status, so upstream's `state`
+# query parameter, template variable and facet title are all `status`.
 def _show_index(user_id, organization_id, include_organization_facet, url_func, file_to_render, extra_vars=None):
     def pager_url(status=None, sort=None, q=None, page=None):
         params = []
@@ -153,13 +157,16 @@ def index():
                        'datarequests/index.html')
 
 
+# CDP: form field pass-through.
 def _submitted_datarequest(data_dict, extra_fields):
     fields = ('id',) + BASE_FORM_FIELDS + tuple(extra_fields)
     return {name: data_dict.get(name, '') for name in fields}
+# CDP: end
 
 
 def _process_post(action, context):
     # If the user has submitted the form, the data request must be created
+    # CDP: form field pass-through.
     post_params = request_helpers.get_post_params()
     if post_params:
         data_dict = {name: request_helpers.get_first_post_param(name, '') for name in BASE_FORM_FIELDS}
@@ -170,6 +177,7 @@ def _process_post(action, context):
         for name in extra_fields:
             if name in post_params:
                 data_dict[name] = request_helpers.get_first_post_param(name)
+        # CDP: end
 
         if action == constants.UPDATE_DATAREQUEST:
             data_dict['id'] = request_helpers.get_first_post_param('id', '')
@@ -182,6 +190,7 @@ def _process_post(action, context):
             log.warning(e)
             # Fill the fields that will display some information in the page
             return {
+                # CDP: form field pass-through.
                 'datarequest': _submitted_datarequest(data_dict, extra_fields),
                 'errors': e.error_dict,
                 'errors_summary': _get_errors_summary(e.error_dict),
@@ -191,6 +200,7 @@ def _process_post(action, context):
             h.flash_error(error_msg)
             # Fill the fields that will display some information in the page
             return {
+                # CDP: form field pass-through.
                 'datarequest': _submitted_datarequest(data_dict, extra_fields),
             }
     return {}
@@ -417,6 +427,7 @@ def comment(id):
 
                 h.flash_notice(flash_message)
 
+                # CDP: redirect so a page refresh does not post the comment again.
                 return tk.redirect_to(tk.url_for('datarequest.comment', id=id))
 
             except tk.NotAuthorized as e:

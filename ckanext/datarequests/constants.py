@@ -32,9 +32,11 @@ DELETE_DATAREQUEST_COMMENT = 'delete_datarequest_comment'
 FOLLOW_DATAREQUEST = 'follow_datarequest'
 UNFOLLOW_DATAREQUEST = 'unfollow_datarequest'
 PURGE_DATAREQUESTS = 'purge_datarequests'
+# CDP: titles are dataset titles, which run past upstream's 100.
 NAME_MAX_LENGTH = 1000
 DESCRIPTION_MAX_LENGTH = 1000
 COMMENT_MAX_LENGTH = DESCRIPTION_MAX_LENGTH
 DATAREQUESTS_PER_PAGE = 10
 CLOSE_CIRCUMSTANCE_MAX_LENGTH = 255
+# CDP: length of the short CDP columns.
 MAX_LENGTH_255 = 255
