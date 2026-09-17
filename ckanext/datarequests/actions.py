@@ -450,7 +450,7 @@ def update_datarequest(context, data_dict):
     data_req = result[0]
 
     # Avoid the validator to return an error when the user does not change the title
-    context['avoid_existing_title_check'] = data_req.title == data_dict['title']
+    context['avoid_existing_title_check'] = context.get('avoid_existing_title_check') or data_req.title == data_dict['title']
 
     # Validate data
     validator.validate_datarequest(context, data_dict)
