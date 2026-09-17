@@ -3,7 +3,7 @@ import pytest
 
 from ckan import model
 from ckanext.datarequests import db
-from ckanext.datarequests.tests.cdp.conftest import STATUS_VALUES, redirect_target
+from ckanext.datarequests.tests.cdp.conftest import STATUS_VALUES, cdp_plugins, redirect_target
 
 STATUS_SELECT = 'id="field-status"'
 
@@ -12,7 +12,7 @@ def _edit_url(datarequest):
     return "/datarequest/edit/{}".format(datarequest["id"])
 
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+@cdp_plugins
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestEditPage:
 
@@ -57,7 +57,7 @@ class TestEditPage:
         assert response.status_code == 403
 
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+@cdp_plugins
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestCommentPage:
 
@@ -73,7 +73,7 @@ class TestCommentPage:
         assert "Please confirm the reporting period" in page.body
 
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+@cdp_plugins
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestDelete:
 

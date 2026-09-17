@@ -1,7 +1,7 @@
 """The Data Request form, submitted through the page like a requester does."""
 import pytest
 
-from ckanext.datarequests.tests.cdp.conftest import redirect_target
+from ckanext.datarequests.tests.cdp.conftest import cdp_plugins, redirect_target
 
 NEW_URL = "/datarequest/new"
 
@@ -10,7 +10,7 @@ def _created_id(response):
     return redirect_target(response).rsplit("/", 1)[-1]
 
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+@cdp_plugins
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestDataRequestForm:
 

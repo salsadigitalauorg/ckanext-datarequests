@@ -7,6 +7,7 @@ scheming field the project adds to datasets, so it is not exercised here.
 import pytest
 
 from ckan.lib import jobs
+from ckanext.datarequests.tests.cdp.conftest import cdp_plugins
 
 SUPPORT_EMAIL = "support@example.com"
 
@@ -33,7 +34,7 @@ def _new_comment(client, datarequest, comment="A comment"):
     return client.call("comment_datarequest", datarequest_id=datarequest["id"], comment=comment)
 
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+@cdp_plugins
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestNotificationRecipients:
 
@@ -88,7 +89,7 @@ class TestNotificationRecipients:
         assert mail_queue.recipients() == sorted([SUPPORT_EMAIL, scenario.follower.user["email"]])
 
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+@cdp_plugins
 @pytest.mark.ckan_config("ckanext.datarequests.send_notifications", False)
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestNotificationsSwitchedOff:

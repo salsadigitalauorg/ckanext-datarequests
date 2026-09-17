@@ -4,6 +4,9 @@ import ckan.plugins.toolkit as tk
 from ckan.cli.cli import ckan as ckan_cli
 from ckan.tests import factories
 
+# datarequests_cdp goes first so its templates and chained functions win.
+cdp_plugins = pytest.mark.ckan_config("ckan.plugins", "activity datarequests_cdp datarequests")
+
 STATUS_VALUES = (
     "Assigned",
     "Processing",
