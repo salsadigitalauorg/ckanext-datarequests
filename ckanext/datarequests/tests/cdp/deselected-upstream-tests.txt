@@ -1,41 +1,7 @@
-# Upstream tests that assert behaviour this fork deliberately changes.
+# Upstream tests that assert behaviour this fork changes inside the upstream-owned modules.
 # One pytest node id per line, relative to the ckanext/ directory.
-# Revisit when the datarequests_cdp plugin takes these behaviours over.
 
-# Close feature is disabled in CDP; Status replaces it.
-datarequests/tests/test_actions.py::ActionsTest::test_close_datarequest_0
-datarequests/tests/test_actions.py::ActionsTest::test_close_datarequest_1
-datarequests/tests/test_actions.py::ActionsTest::test_close_datarequest_2
-datarequests/tests/test_actions.py::ActionsTest::test_close_datarequest_3
-datarequests/tests/test_validator.py::ValidatorTest::test_close_invalid_accepted_dataset
-datarequests/tests/test_validator.py::ValidatorTest::test_close_valid
-
-# Notifications go to Internal Data Catalogue Support, the Dataset Point of Contact, the requester and Followers, not organisation admins; _get_datarequest_involved_users no longer exists.
-datarequests/tests/test_actions.py::ActionsTest::test_comment
-datarequests/tests/test_actions.py::ActionsTest::test_create_datarequest_valid
-datarequests/tests/test_actions.py::ActionsTest::test_delete_datarequest_0
-datarequests/tests/test_actions.py::ActionsTest::test_delete_datarequest_1_org_id
-datarequests/tests/test_actions.py::ActionsTest::test_delete_datarequest_2
-datarequests/tests/test_actions.py::ActionsTest::test_delete_datarequest_3_org_id
-datarequests/tests/test_actions.py::ActionsTest::test_get_involved_users_no_org_and_current_user_must_be_discarded
-datarequests/tests/test_actions.py::ActionsTest::test_get_involved_users_no_org_and_current_user_must_not_be_discarded
-datarequests/tests/test_actions.py::ActionsTest::test_get_involved_users_org
-datarequests/tests/test_actions.py::ActionsTest::test_send_mail_exception_no_risen
-datarequests/tests/test_actions.py::ActionsTest::test_send_mail_two_users
-datarequests/tests/test_actions.py::ActionsTest::test_update_datarequest_0
-datarequests/tests/test_actions.py::ActionsTest::test_update_datarequest_1
-datarequests/tests/test_actions.py::ActionsTest::test_update_datarequest_2
-datarequests/tests/test_actions.py::ActionsTest::test_update_datarequest_3
-datarequests/tests/test_actions.py::ActionsTest::test_update_datarequest_4
-datarequests/tests/test_ui_controller.py::UIControllerTest::test_comment_list_1
-datarequests/tests/test_ui_controller.py::UIControllerTest::test_comment_list_2
-datarequests/tests/test_validator.py::ValidatorTest::test_comment_invalid_datarequest
-datarequests/tests/test_validator.py::ValidatorTest::test_comment_invalid_good_datarequest_0
-datarequests/tests/test_validator.py::ValidatorTest::test_comment_invalid_good_datarequest_1
-datarequests/tests/test_validator.py::ValidatorTest::test_comment_invalid_good_datarequest_2
-datarequests/tests/test_validator.py::ValidatorTest::test_comment_valid
-
-# Listing applies the Visible rules and a status facet, which need a request user.
+# Listing applies the Visible rules and a Status facet, which need a request user.
 datarequests/tests/test_actions.py::ActionsTest::test_list_datarequests_00
 datarequests/tests/test_actions.py::ActionsTest::test_list_datarequests_01
 datarequests/tests/test_actions.py::ActionsTest::test_list_datarequests_02
@@ -54,31 +20,12 @@ datarequests/tests/test_actions.py::ActionsTest::test_list_datarequests_14
 datarequests/tests/test_actions.py::ActionsTest::test_list_datarequests_15
 datarequests/tests/test_actions.py::ActionsTest::test_list_datarequests_16
 
-# show/update/delete follow the Visible rules and allow Owning Organisation editors to update.
-datarequests/tests/test_auth.py::AuthTest::test_everyone_can_create_show_and_index_04
-datarequests/tests/test_auth.py::AuthTest::test_everyone_can_create_show_and_index_05
-datarequests/tests/test_auth.py::AuthTest::test_everyone_can_create_show_and_index_06
-datarequests/tests/test_auth.py::AuthTest::test_everyone_can_create_show_and_index_07
-datarequests/tests/test_auth.py::AuthTest::test_everyone_can_create_show_and_index_20
-datarequests/tests/test_auth.py::AuthTest::test_everyone_can_create_show_and_index_21
-datarequests/tests/test_auth.py::AuthTest::test_update_delete_datarequest_02
-datarequests/tests/test_auth.py::AuthTest::test_update_delete_datarequest_03
-datarequests/tests/test_auth.py::AuthTest::test_update_delete_datarequest_08
-datarequests/tests/test_auth.py::AuthTest::test_update_delete_datarequest_09
-datarequests/tests/test_auth.py::AuthTest::test_update_delete_datarequest_10
+# Deleting keeps the row and marks it deleted.
+datarequests/tests/test_actions.py::ActionsTest::test_delete_datarequest_0
+datarequests/tests/test_actions.py::ActionsTest::test_delete_datarequest_1_org_id
+datarequests/tests/test_actions.py::ActionsTest::test_delete_datarequest_2
+datarequests/tests/test_actions.py::ActionsTest::test_delete_datarequest_3_org_id
 
-# Controller passes CDP extra fields, Requesting Organisation options and the Status flag to templates, and redirects after a comment.
-datarequests/tests/test_ui_controller.py::UIControllerTest::test_new_no_post_0
-datarequests/tests/test_ui_controller.py::UIControllerTest::test_new_post_content_2
-datarequests/tests/test_ui_controller.py::UIControllerTest::test_update_no_post_content
-datarequests/tests/test_ui_controller.py::UIControllerTest::test_update_post_content_2
-
-# Validator requires the CDP fields, relabels description, drops the duplicate-title check and no longer imports db.
-datarequests/tests/test_validator.py::ValidatorTest::test_invalid_org
-datarequests/tests/test_validator.py::ValidatorTest::test_missing_org
-datarequests/tests/test_validator.py::ValidatorTest::test_validate_name_description_0_Title
-datarequests/tests/test_validator.py::ValidatorTest::test_validate_name_description_1_Title
-datarequests/tests/test_validator.py::ValidatorTest::test_validate_name_description_2_Title
-datarequests/tests/test_validator.py::ValidatorTest::test_validate_name_description_3_Description
-datarequests/tests/test_validator.py::ValidatorTest::test_validate_valid_data_request_0
-datarequests/tests/test_validator.py::ValidatorTest::test_validate_valid_data_request_1
+# Posting a comment redirects back to the comment page.
+datarequests/tests/test_ui_controller.py::UIControllerTest::test_comment_list_1
+datarequests/tests/test_ui_controller.py::UIControllerTest::test_comment_list_2

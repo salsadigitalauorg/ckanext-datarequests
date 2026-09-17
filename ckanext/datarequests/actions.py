@@ -129,14 +129,18 @@ def _undictize_datarequest_basic(datarequest, data_dict):
     datarequest.organization_id = organization if organization else None
     _undictize_datarequest_closing_circumstances(datarequest, data_dict)
 
-    datarequest.data_use_type = data_dict['data_use_type']
-    datarequest.who_will_access_this_data = data_dict['who_will_access_this_data']
-    datarequest.requesting_organisation = data_dict['requesting_organisation']
-    datarequest.data_storage_environment = data_dict['data_storage_environment']
-    datarequest.data_outputs_type = data_dict['data_outputs_type']
-    datarequest.data_outputs_description = data_dict['data_outputs_description']
-    datarequest.status = data_dict['status']
-    datarequest.requested_dataset = data_dict['requested_dataset']
+    # Absent when datarequests runs without datarequests_cdp, which is what requires them.
+    for field in (
+        'data_use_type',
+        'who_will_access_this_data',
+        'requesting_organisation',
+        'data_storage_environment',
+        'data_outputs_type',
+        'data_outputs_description',
+        'status',
+        'requested_dataset',
+    ):
+        setattr(datarequest, field, data_dict.get(field))
 
 
 def _undictize_datarequest_closing_circumstances(datarequest, data_dict):
@@ -185,7 +189,8 @@ def _get_datarequest_involved_users(context, datarequest_dict):
 
 def _notifications_enabled():
     # datarequests_cdp routes its own mail, so this plugin's stays quiet beside it.
-    return tk.asbool(config.get('ckanext.datarequests.send_notifications', True)) and not plugin_loaded('datarequests_cdp')
+    switched_on = config.get('ckanext.datarequests.send_notifications')
+    return (switched_on is None or tk.asbool(switched_on)) and not plugin_loaded('datarequests_cdp')
 
 
 def _send_mail(user_ids, action_type, datarequest, job_title=None):
