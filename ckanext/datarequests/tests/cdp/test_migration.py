@@ -9,7 +9,7 @@ from sqlalchemy import text
 from ckan import model
 from ckan.tests import factories
 from ckanext.datarequests import constants
-from ckanext.datarequests.tests.cdp.conftest import Client, migrate_plugin_tables, run_datarequests_command
+from ckanext.datarequests.tests.cdp.conftest import Client, cdp_plugins, migrate_plugin_tables, run_datarequests_command
 
 CDP_COLUMNS = {
     "data_use_type",
@@ -63,7 +63,7 @@ def legacy_database(clean_db, migrate_db_for):
     return legacy_id
 
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+@cdp_plugins
 @pytest.mark.usefixtures("with_plugins")
 class TestMigration:
 

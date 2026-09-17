@@ -3,7 +3,7 @@ import pytest
 
 from ckan import model
 from ckanext.datarequests import db
-from ckanext.datarequests.tests.cdp.conftest import STATUS_VALUES, redirect_target
+from ckanext.datarequests.tests.cdp.conftest import STATUS_VALUES, cdp_plugins, redirect_target
 
 STATUS_SELECT = 'id="field-status"'
 
@@ -12,7 +12,7 @@ def _edit_url(datarequest):
     return "/datarequest/edit/{}".format(datarequest["id"])
 
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+@cdp_plugins
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestEditPage:
 
@@ -56,8 +56,29 @@ class TestEditPage:
 
         assert response.status_code == 403
 
+    def test_owning_organisation_member_can_open_but_not_edit(self, scenario):
+        datarequest = scenario.create(scenario.requester)
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+        assert scenario.member.get("/datarequest/" + datarequest["id"]).status_code == 200
+        assert scenario.member.get(_edit_url(datarequest)).status_code == 403
+
+    @pytest.mark.parametrize("action", ["show_datarequest", "update_datarequest", "delete_datarequest"])
+    def test_claiming_ownership_in_the_api_call_does_not_grant_access(self, scenario, action):
+        datarequest = scenario.create(scenario.requester)
+        claim = scenario.fields(id=datarequest["id"], user_id=scenario.outsider.user["id"], organization_id=scenario.other_org["id"])
+
+        response = scenario.app.post("/api/action/" + action, json=claim, headers=scenario.outsider.headers, status=403)
+
+        assert response.json["success"] is False
+
+    def test_nobody_can_close_a_request(self, scenario):
+        datarequest = scenario.create(scenario.requester)
+
+        for client in (scenario.requester, scenario.editor, scenario.sysadmin):
+            assert client.get("/datarequest/close/" + datarequest["id"]).status_code == 403
+
+
+@cdp_plugins
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestCommentPage:
 
@@ -73,7 +94,7 @@ class TestCommentPage:
         assert "Please confirm the reporting period" in page.body
 
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+@cdp_plugins
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestDelete:
 
