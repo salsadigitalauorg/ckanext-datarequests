@@ -10,7 +10,7 @@ from six.moves.urllib.parse import urlencode
 from ckan import model
 from ckan.lib import helpers, captcha
 from ckan.plugins import toolkit as tk
-from ckan.plugins.toolkit import g, h, request, _, current_user
+from ckan.plugins.toolkit import g, h, request, _
 
 from ckanext.datarequests import constants, request_helpers
 
@@ -196,22 +196,6 @@ def _process_post(action, context):
     return {}
 
 
-def _requesting_organisation_options():
-    organizations = h.organizations_available('read')
-    return [{'value': '', 'text': ''}] + [{'value': org['id'], 'text': org['name']} for org in organizations]
-
-
-def _can_edit_status(datarequest):
-    if current_user.sysadmin:
-        return True
-    if not datarequest or not datarequest.get('organization'):
-        return False
-    for user in datarequest['organization'].get('users', []):
-        if user['id'] == current_user.id and user['capacity'] in ('editor', 'admin'):
-            return True
-    return False
-
-
 def new():
     context = _get_context()
 
@@ -220,26 +204,17 @@ def new():
         'datarequest': {},
         'errors': {},
         'errors_summary': {},
-        'requesting_organisation_options': [],
     }
 
     # Check access
     try:
         tk.check_access(constants.CREATE_DATAREQUEST, context, None)
         post_result = _process_post(constants.CREATE_DATAREQUEST, context)
-        if not isinstance(post_result, dict):
+        if isinstance(post_result, dict):
+            extra_vars.update(post_result)
+            return tk.render('datarequests/new.html', extra_vars=extra_vars)
+        else:
             return post_result
-        extra_vars.update(post_result)
-
-        dataset_id = request.args.get('id')
-        if dataset_id:
-            dataset = tk.get_action('package_show')(context, {'id': dataset_id})
-            extra_vars['datarequest']['title'] = dataset.get('title', '')
-            extra_vars['datarequest']['requested_dataset'] = dataset.get('id', '')
-            extra_vars['datarequest']['organization_id'] = dataset.get('organization', {}).get('id')
-
-        extra_vars['requesting_organisation_options'] = _requesting_organisation_options()
-        return tk.render('datarequests/new.html', extra_vars=extra_vars)
     except tk.NotAuthorized as e:
         log.warning(e)
         return tk.abort(403, tk._('Unauthorized to create a Data Request'))
@@ -275,8 +250,6 @@ def update(id):
         'datarequest': {},
         'errors': {},
         'errors_summary': {},
-        'requesting_organisation_options': [],
-        'access_to_status_field': False,
     }
 
     try:
@@ -285,13 +258,11 @@ def update(id):
         extra_vars['datarequest'] = current_datarequest
         extra_vars['original_title'] = current_datarequest.get('title')
         post_result = _process_post(constants.UPDATE_DATAREQUEST, context)
-        if not isinstance(post_result, dict):
+        if isinstance(post_result, dict):
+            extra_vars.update(post_result)
+            return tk.render('datarequests/edit.html', extra_vars=extra_vars)
+        else:
             return post_result
-        extra_vars.update(post_result)
-
-        extra_vars['requesting_organisation_options'] = _requesting_organisation_options()
-        extra_vars['access_to_status_field'] = _can_edit_status(current_datarequest)
-        return tk.render('datarequests/edit.html', extra_vars=extra_vars)
     except tk.ObjectNotFound as e:
         log.warning(e)
         return tk.abort(404, tk._('Data Request %s not found') % id)

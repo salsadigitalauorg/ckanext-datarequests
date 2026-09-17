@@ -10,7 +10,7 @@
 
 {% block primary_content_inner %}
   <h1 class="{% block page_heading_class %}page-heading{% endblock %}">{% block page_heading %}{{ _('Edit Data Request') }}{% endblock %}</h1>
-  {% snippet "datarequests/snippets/edit_datarequest_form.html", data=datarequest, errors=errors, errors_summary=errors_summary %}
+  {% snippet "datarequests/snippets/edit_datarequest_form.html", show_status=h.datarequest_can_edit_status(datarequest.id), data=datarequest, errors=errors, errors_summary=errors_summary %}
 {% endblock %}
 
 {% block page_header %}{% endblock %}
