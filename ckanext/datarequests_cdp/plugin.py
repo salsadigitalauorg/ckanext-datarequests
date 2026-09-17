@@ -1,7 +1,7 @@
 import ckan.plugins as p
 import ckan.plugins.toolkit as tk
 
-from . import helpers
+from . import auth, helpers
 
 
 class DataRequestsCdpPlugin(p.SingletonPlugin):
@@ -11,11 +11,19 @@ class DataRequestsCdpPlugin(p.SingletonPlugin):
     and chained functions take precedence.
     """
 
+    p.implements(p.IAuthFunctions)
     p.implements(p.IConfigurer)
     p.implements(p.ITemplateHelpers)
 
     def update_config(self, config):
         tk.add_template_directory(config, 'templates')
+
+    def get_auth_functions(self):
+        return {
+            'show_datarequest': auth.show_datarequest,
+            'update_datarequest': auth.update_datarequest,
+            'close_datarequest': auth.close_datarequest,
+        }
 
     def get_helpers(self):
         return {

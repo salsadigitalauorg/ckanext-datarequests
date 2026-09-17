@@ -1,5 +1,7 @@
 import ckan.plugins.toolkit as tk
 
+from . import auth
+
 STATUS_LIST = [
     {'value': 'Assigned', 'text': 'Assigned', 'label_class': 'open'},
     {'value': 'Processing', 'text': 'Processing', 'label_class': 'open'},
@@ -25,12 +27,9 @@ def requesting_organisation_options():
 
 
 def can_edit_status(datarequest_id):
-    """Whether the current user may change Status: sysadmins, and editors and admins of the Owning Organisation."""
-    if tk.current_user.sysadmin:
-        return True
+    """Whether the current user may change the Status of this Data Request."""
     datarequest = tk.get_action('show_datarequest')({}, {'id': datarequest_id})
-    users = (datarequest.get('organization') or {}).get('users', [])
-    return any(user['id'] == tk.current_user.id and user['capacity'] in ('editor', 'admin') for user in users)
+    return auth.can_change_status(tk.current_user, datarequest)
 
 
 def prefilled_from_dataset(datarequest):

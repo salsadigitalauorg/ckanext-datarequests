@@ -56,6 +56,18 @@ class TestEditPage:
 
         assert response.status_code == 403
 
+    def test_owning_organisation_member_can_open_but_not_edit(self, scenario):
+        datarequest = scenario.create(scenario.requester)
+
+        assert scenario.member.get("/datarequest/" + datarequest["id"]).status_code == 200
+        assert scenario.member.get(_edit_url(datarequest)).status_code == 403
+
+    def test_nobody_can_close_a_request(self, scenario):
+        datarequest = scenario.create(scenario.requester)
+
+        for client in (scenario.requester, scenario.editor, scenario.sysadmin):
+            assert client.get("/datarequest/close/" + datarequest["id"]).status_code == 403
+
 
 @cdp_plugins
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
