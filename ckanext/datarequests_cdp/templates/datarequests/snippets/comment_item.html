@@ -37,7 +37,7 @@
     </div>
 
     {% if can_update %}
-      {% snippet "datarequests/snippets/comment_form.html", comment_id=comment.id, datarequest=datarequest, errors=errors, errors_summary=errors_summary, initial_text=updated_comment.comment if focus else comment.comment, focus=focus %}
+      {% snippet "datarequests/snippets/comment_form.html", comment_id=comment.id, datarequest=datarequest, errors=errors, errors_summary=errors_summary, initial_text=updated_comment.comment.comment if focus else comment.comment, focus=focus %}
     {% endif %}
 
   </div>

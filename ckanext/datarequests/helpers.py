@@ -62,23 +62,3 @@ def get_closing_circumstances():
         closing_circumstances.append({'circumstance': circumstance, 'condition': condition})
 
     return closing_circumstances
-
-
-def get_status_list():
-    return [
-        {'value': 'Assigned', 'text': 'Assigned', 'label_class': 'open'},
-        {'value': 'Processing', 'text': 'Processing', 'label_class': 'open'},
-        {'value': 'Finalised - Approved', 'text': 'Finalised - Approved', 'label_class': 'closed'},
-        {'value': 'Finalised - Not Approved', 'text': 'Finalised - Not Approved', 'label_class': 'closed'},
-        {'value': 'Assign to Internal Data Catalogue Support', 'text': 'Assign to Internal Data Catalogue Support', 'label_class': 'open'}
-    ]
-
-
-def get_status_label(status):
-    default_label = {'label_class': 'open', 'text': 'Assigned'}
-
-    for item in get_status_list():
-        if item['value'] == status:
-            return item
-
-    return default_label

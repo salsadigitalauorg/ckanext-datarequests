@@ -162,7 +162,7 @@ def validate_datarequest(context, request_data):
         _add_error(errors, data_outputs_description_field, tk._('Data outputs description need to be longer than two characters and alphabetical'))
 
     # Check status, it should not be empty and have valid value.
-    valid_statuses = helpers.get_status_list()
+    valid_statuses = tk.h.get_status_list()
     status = request_data.get('status', 'Assigned')
     request_data['status'] = status
     status_field = tk._('Status')
