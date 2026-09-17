@@ -20,10 +20,15 @@ class DataRequestsCdpPlugin(p.SingletonPlugin):
         tk.add_template_directory(config, 'templates')
 
     def get_actions(self):
-        return {
+        chained = {
             'create_datarequest': actions.create_datarequest,
             'update_datarequest': actions.update_datarequest,
+            'delete_datarequest': actions.delete_datarequest,
         }
+        # datarequests only registers the comment action when comments are on.
+        if tk.asbool(tk.config.get('ckan.datarequests.comments', True)):
+            chained['comment_datarequest'] = actions.comment_datarequest
+        return chained
 
     def get_auth_functions(self):
         return {

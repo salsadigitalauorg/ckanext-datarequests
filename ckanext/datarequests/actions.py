@@ -29,7 +29,7 @@ except ImportError:
 from ckan import authz, model
 from ckan.lib import mailer
 from ckan.lib.redis import connect_to_redis
-from ckan.plugins import toolkit as tk
+from ckan.plugins import plugin_loaded, toolkit as tk
 from ckan.plugins.toolkit import h, config, current_user
 
 from . import common, constants, db, validator
@@ -45,12 +45,12 @@ CREATION_THROTTLE_EXPIRY = 300
 THROTTLE_ERROR = "Too many requests submitted, please wait {} minutes and try again"
 
 
-def _get_user(user_id, keep_email=False):
+def _get_user(user_id):
     try:
         if user_id in USERS_CACHE:
             return USERS_CACHE[user_id]
         else:
-            user = tk.get_action('user_show')({'ignore_auth': True, 'keep_email': keep_email}, {'id': user_id})
+            user = tk.get_action('user_show')({'ignore_auth': True}, {'id': user_id})
             USERS_CACHE[user_id] = user
             return user
     except Exception as e:
@@ -73,7 +73,7 @@ def _get_package(package_id):
         log.warning(e)
 
 
-def _dictize_datarequest(datarequest, user_keep_email=False):
+def _dictize_datarequest(datarequest):
     # Transform time
     open_time = str(datarequest.open_time)
     # Close time can be None and the transformation is only needed when the
@@ -92,7 +92,7 @@ def _dictize_datarequest(datarequest, user_keep_email=False):
         'accepted_dataset_id': datarequest.accepted_dataset_id,
         'close_time': close_time,
         'closed': datarequest.closed,
-        'user': _get_user(datarequest.user_id, user_keep_email),
+        'user': _get_user(datarequest.user_id),
         'organization': None,
         'accepted_dataset': None,
         'followers': 0,
@@ -162,103 +162,42 @@ def _undictize_comment_basic(comment, data_dict):
     comment.datarequest_id = data_dict.get('datarequest_id', '')
 
 
-def _get_datarequest_followers(context, datarequest_dict):
-    datarequest_id = datarequest_dict['id']
+def _get_datarequest_involved_users(context, datarequest_dict):
 
-    users = []
-    followers = db.DataRequestFollower.get(datarequest_id=datarequest_id)
-    for follower in followers:
-        if follower.user_id != context['auth_user_obj'].id:
-            follower.user = _get_user(follower.user_id, True)
-            if follower.user.get('email', None):
-                users.append({
-                    'email': follower.user['email'],
-                    'name': follower.user['name'] or follower.user['email'],
-                })
+    datarequest_id = datarequest_dict['id']
+    new_context = {'ignore_auth': True, 'model': context['model']}
+
+    # Creator + Followers + People who has commented + Organization Staff
+    users = set()
+    users.add(datarequest_dict['user_id'])
+    users.update([follower.user_id for follower in db.DataRequestFollower.get(datarequest_id=datarequest_id)])
+    users.update([comment['user_id'] for comment in list_datarequest_comments(new_context, {'datarequest_id': datarequest_id})])
+
+    org = datarequest_dict.get('organization')
+    if org:
+        users.update(_get_admin_users_from_organisation(org))
+
+    # Notifications are not sent to the user that performs the action
+    users.discard(context['auth_user_obj'].id)
 
     return users
 
 
 def _notifications_enabled():
-    return tk.asbool(config.get('ckanext.datarequests.send_notifications', True))
+    # datarequests_cdp routes its own mail, so this plugin's stays quiet beside it.
+    return tk.asbool(config.get('ckanext.datarequests.send_notifications', True)) and not plugin_loaded('datarequests_cdp')
 
 
-def _send_mail(action_type, datarequest, job_title=None, context=None, comment=None):
+def _send_mail(user_ids, action_type, datarequest, job_title=None):
     if not _notifications_enabled():
         return
 
-    user_list = []
-
-    def get_catalog_support_team():
-        user_list.append({
-            'email': config.get('ckanext.datarequests.internal_data_catalogue_support_team_email'),
-            'name': config.get('ckanext.datarequests.internal_data_catalogue_support_team_name')
-        })
-
-    def get_dataset_poc():
-        dataset = _get_package(datarequest.get('requested_dataset'))
-        dataset_poi_email = dataset.get('point_of_contact_email') if dataset else None
-        dataset_poi_name = dataset.get('point_of_contact') if dataset else None
-        if dataset_poi_email:
-            user_list.append({
-                'email': dataset_poi_email,
-                'name': dataset_poi_name
-            })
-
-    def get_datarequest_creator():
-        user = datarequest.get('user')
-        requester_email = user.get('email')
-        requester_name = datarequest.get('name')
-        if requester_email:
-            user_list.append({
-                'email': requester_email,
-                'name': requester_name
-            })
-
-    def get_datarequest_followers():
-        followers = _get_datarequest_followers(context, datarequest)
-        user_list.extend(followers)
-
-    match action_type:
-        case 'new_datarequest':
-            get_catalog_support_team()
-            get_dataset_poc()
-
-        case 'update_datarequest':
-            get_catalog_support_team()
-            if current_user.id != datarequest['user_id']:
-                get_datarequest_creator()
-
-        case 'comment_datarequest':
-            get_catalog_support_team()
-            get_datarequest_followers()
-
-            if datarequest['user']['id'] == comment['user_id']:
-                # If this comment from datarequest creator, notify the dataset POC.
-                get_dataset_poc()
-            else:
-                get_datarequest_creator()
-
-        case 'delete_datarequest':
-            get_catalog_support_team()
-            get_datarequest_followers()
-
-        case 'update_datarequest_follower':
-            get_datarequest_followers()
-
-    # Load requesting organisation.
-    if datarequest.get('requesting_organisation'):
-        org = _get_organization(datarequest['requesting_organisation'])
-        if org:
-            datarequest['requesting_organisation_dict'] = org
-
-    # Sends the email to users.
-    for user in user_list:
+    for user_id in user_ids:
         try:
+            user_data = model.User.get(user_id)
             extra_vars = {
                 'datarequest': datarequest,
-                'comment': comment,
-                'user': user,
+                'user': user_data,
                 'site_title': config.get('ckan.site_title'),
                 'site_url': config.get('ckan.site_url')
             }
@@ -266,9 +205,9 @@ def _send_mail(action_type, datarequest, job_title=None, context=None, comment=N
             subject = tk.render('emails/subjects/{0}.txt'.format(action_type), extra_vars)
             body = tk.render('emails/bodies/{0}.txt'.format(action_type), extra_vars)
 
-            tk.enqueue_job(mailer.mail_recipient, [user['name'], user['email'], subject, body], title=job_title)
+            tk.enqueue_job(mailer.mail_user, [user_data, subject, body], title=job_title)
         except Exception:
-            log.exception("Error sending notification to {0}".format(user['email']))
+            log.exception("Error sending notification to {0}".format(user_id))
 
 
 def _get_admin_users_from_organisation(org_dict):
@@ -361,8 +300,11 @@ def create_datarequest(context, data_dict):
 
     datarequest_dict = _dictize_datarequest(data_req)
 
-    # When a data request is created, an email is sent to the Point Of Contact of the dataset and Internal Data Catalogue Support team.
-    _send_mail('new_datarequest', datarequest_dict, 'Data Request Created Email', context)
+    org = datarequest_dict.get('organization')
+    if org:
+        users = _get_admin_users_from_organisation(org)
+        users.discard(creator.id)
+        _send_mail(users, 'new_datarequest', datarequest_dict, 'Data Request Created Email')
 
     return datarequest_dict
 
@@ -455,29 +397,35 @@ def update_datarequest(context, data_dict):
     # Validate data
     validator.validate_datarequest(context, data_dict)
 
-    # Track changes in the data request
-    has_changes = False
-    old_data_json = _dictize_datarequest(data_req)
-    for key, value in data_dict.items():
-        if old_data_json[key] != value:
-            has_changes = True
-            break
+    # Determine whether organisation has changed
+    organisation_updated = data_req.organization_id != data_dict['organization_id']
+    if organisation_updated:
+        unassigned_organisation_id = data_req.organization_id
 
     # Set the data provided by the user in the data_red
     _undictize_datarequest_basic(data_req, data_dict)
 
-    # Always force datarequest to active state when updating, some older dataset may be in null state
+    # Rows written before the state column existed have no State; saving one makes it active.
     data_req.state = model.State.ACTIVE
 
     session.add(data_req)
     session.commit()
 
-    datarequest_dict = _dictize_datarequest(data_req, user_keep_email=True)
+    datarequest_dict = _dictize_datarequest(data_req)
 
-    # Send follower and email notifications if there is changes in the data request
-    if has_changes:
-        _send_mail('update_datarequest', datarequest_dict, 'Data Request Status Change Email', context)
-        _send_mail('update_datarequest_follower', datarequest_dict, 'Data Request Updated Email', context)
+    if organisation_updated and common.get_config_bool_value('ckanext.datarequests.notify_on_update'):
+        org = datarequest_dict['organization']
+        # Email Admin users of the assigned organisation
+        if org:
+            users = _get_admin_users_from_organisation(org)
+            users.discard(context['auth_user_obj'].id)
+            _send_mail(users, 'new_datarequest_organisation',
+                       datarequest_dict, 'Data Request Assigned Email')
+        # Email Admin users of unassigned organisation
+        users = _get_admin_users_from_organisation(_get_organization(unassigned_organisation_id))
+        users.discard(context['auth_user_obj'].id)
+        _send_mail(users, 'unassigned_datarequest_organisation',
+                   datarequest_dict, 'Data Request Unassigned Email')
 
     return datarequest_dict
 
@@ -666,11 +614,7 @@ def delete_datarequest(context, data_dict):
     data_req.delete()
     session.commit()
 
-    # Send emails
-    datarequest_dict = _dictize_datarequest(data_req)
-    _send_mail('delete_datarequest', datarequest_dict, 'Data Request Deletion Email', context)
-
-    return datarequest_dict
+    return _dictize_datarequest(data_req)
 
 
 def close_datarequest(context, data_dict):
@@ -727,6 +671,11 @@ def close_datarequest(context, data_dict):
 
     datarequest_dict = _dictize_datarequest(data_req)
 
+    # Mailing
+    users = _get_datarequest_involved_users(context, datarequest_dict)
+    _send_mail(users, 'close_datarequest',
+               datarequest_dict, 'Data Request Closed Send Email')
+
     return datarequest_dict
 
 
@@ -759,7 +708,7 @@ def comment_datarequest(context, data_dict):
     tk.check_access(constants.COMMENT_DATAREQUEST, context, data_dict)
 
     # Validate comment
-    validator.validate_comment(context, data_dict)
+    datarequest_dict = validator.validate_comment(context, data_dict)
 
     # Store the data
     comment = db.Comment()
@@ -770,13 +719,11 @@ def comment_datarequest(context, data_dict):
     session.add(comment)
     session.commit()
 
-    comment_dict = _dictize_comment(comment)
+    # Mailing
+    users = _get_datarequest_involved_users(context, datarequest_dict)
+    _send_mail(users, 'new_comment', datarequest_dict)
 
-    # Send emails
-    datarequest_dict = _dictize_datarequest(db.DataRequest.get(id=datarequest_id)[0], user_keep_email=True)
-    _send_mail('comment_datarequest', datarequest_dict, 'Data Request Comment Email', context, comment_dict)
-
-    return comment_dict
+    return _dictize_comment(comment)
 
 
 def show_datarequest_comment(context, data_dict):
