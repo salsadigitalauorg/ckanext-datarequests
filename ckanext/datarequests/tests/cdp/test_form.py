@@ -1,7 +1,7 @@
 """The Data Request form, submitted through the page like a requester does."""
 import pytest
 
-from ckanext.datarequests.tests.cdp.conftest import redirect_target
+from ckanext.datarequests.tests.cdp.conftest import cdp_plugins, redirect_target
 
 NEW_URL = "/datarequest/new"
 
@@ -10,7 +10,7 @@ def _created_id(response):
     return redirect_target(response).rsplit("/", 1)[-1]
 
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+@cdp_plugins
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestDataRequestForm:
 
@@ -46,3 +46,11 @@ class TestDataRequestForm:
         assert 'value="{}"'.format(submitted["organization_id"]) in response.body
         assert '<option value="{}" selected'.format(submitted["requesting_organisation"]) in response.body
         assert scenario.sysadmin.call("list_datarequests")["count"] == 0
+
+    def test_form_opened_from_a_dataset_is_prefilled(self, scenario):
+        response = scenario.requester.get(NEW_URL, query_string={"id": scenario.dataset["name"]})
+
+        assert response.status_code == 200
+        assert 'value="{}"'.format(scenario.dataset["title"]) in response.body
+        assert 'value="{}"'.format(scenario.dataset["id"]) in response.body
+        assert scenario.other_org["name"] in response.body

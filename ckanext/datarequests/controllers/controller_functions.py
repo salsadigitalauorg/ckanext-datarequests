@@ -10,7 +10,7 @@ from six.moves.urllib.parse import urlencode
 from ckan import model
 from ckan.lib import helpers, captcha
 from ckan.plugins import toolkit as tk
-from ckan.plugins.toolkit import g, h, request, _, current_user
+from ckan.plugins.toolkit import g, h, request, _
 
 from ckanext.datarequests import constants, request_helpers
 
@@ -18,12 +18,14 @@ _link = re.compile(r'(?:(https?://)|(www\.))(\S+\b/?)([!"#$%&\'()*+,\-./:;<=>?@[
 
 log = logging.getLogger(__name__)
 
+# CDP: form field pass-through, ckanext.datarequests.extra_fields.
 BASE_FORM_FIELDS = ('title', 'description', 'organization_id')
 
 
 def _extra_form_fields():
     """Form fields beyond the upstream three that a deployment collects, declared in config."""
     return tk.aslist(tk.config.get('ckanext.datarequests.extra_fields', ''))
+# CDP: end
 
 
 def _get_errors_summary(errors):
@@ -65,6 +67,8 @@ def _get_context():
             'user': g.user, 'auth_user_obj': g.userobj}
 
 
+# CDP: in _show_index the listing filters on Status, so upstream's `state`
+# query parameter, template variable and facet title are all `status`.
 def _show_index(user_id, organization_id, include_organization_facet, url_func, file_to_render, extra_vars=None):
     def pager_url(status=None, sort=None, q=None, page=None):
         params = []
@@ -153,13 +157,16 @@ def index():
                        'datarequests/index.html')
 
 
+# CDP: form field pass-through.
 def _submitted_datarequest(data_dict, extra_fields):
     fields = ('id',) + BASE_FORM_FIELDS + tuple(extra_fields)
     return {name: data_dict.get(name, '') for name in fields}
+# CDP: end
 
 
 def _process_post(action, context):
     # If the user has submitted the form, the data request must be created
+    # CDP: form field pass-through.
     post_params = request_helpers.get_post_params()
     if post_params:
         data_dict = {name: request_helpers.get_first_post_param(name, '') for name in BASE_FORM_FIELDS}
@@ -170,6 +177,7 @@ def _process_post(action, context):
         for name in extra_fields:
             if name in post_params:
                 data_dict[name] = request_helpers.get_first_post_param(name)
+        # CDP: end
 
         if action == constants.UPDATE_DATAREQUEST:
             data_dict['id'] = request_helpers.get_first_post_param('id', '')
@@ -182,6 +190,7 @@ def _process_post(action, context):
             log.warning(e)
             # Fill the fields that will display some information in the page
             return {
+                # CDP: form field pass-through.
                 'datarequest': _submitted_datarequest(data_dict, extra_fields),
                 'errors': e.error_dict,
                 'errors_summary': _get_errors_summary(e.error_dict),
@@ -191,25 +200,10 @@ def _process_post(action, context):
             h.flash_error(error_msg)
             # Fill the fields that will display some information in the page
             return {
+                # CDP: form field pass-through.
                 'datarequest': _submitted_datarequest(data_dict, extra_fields),
             }
     return {}
-
-
-def _requesting_organisation_options():
-    organizations = h.organizations_available('read')
-    return [{'value': '', 'text': ''}] + [{'value': org['id'], 'text': org['name']} for org in organizations]
-
-
-def _can_edit_status(datarequest):
-    if current_user.sysadmin:
-        return True
-    if not datarequest or not datarequest.get('organization'):
-        return False
-    for user in datarequest['organization'].get('users', []):
-        if user['id'] == current_user.id and user['capacity'] in ('editor', 'admin'):
-            return True
-    return False
 
 
 def new():
@@ -220,26 +214,17 @@ def new():
         'datarequest': {},
         'errors': {},
         'errors_summary': {},
-        'requesting_organisation_options': [],
     }
 
     # Check access
     try:
         tk.check_access(constants.CREATE_DATAREQUEST, context, None)
         post_result = _process_post(constants.CREATE_DATAREQUEST, context)
-        if not isinstance(post_result, dict):
+        if isinstance(post_result, dict):
+            extra_vars.update(post_result)
+            return tk.render('datarequests/new.html', extra_vars=extra_vars)
+        else:
             return post_result
-        extra_vars.update(post_result)
-
-        dataset_id = request.args.get('id')
-        if dataset_id:
-            dataset = tk.get_action('package_show')(context, {'id': dataset_id})
-            extra_vars['datarequest']['title'] = dataset.get('title', '')
-            extra_vars['datarequest']['requested_dataset'] = dataset.get('id', '')
-            extra_vars['datarequest']['organization_id'] = dataset.get('organization', {}).get('id')
-
-        extra_vars['requesting_organisation_options'] = _requesting_organisation_options()
-        return tk.render('datarequests/new.html', extra_vars=extra_vars)
     except tk.NotAuthorized as e:
         log.warning(e)
         return tk.abort(403, tk._('Unauthorized to create a Data Request'))
@@ -275,8 +260,6 @@ def update(id):
         'datarequest': {},
         'errors': {},
         'errors_summary': {},
-        'requesting_organisation_options': [],
-        'access_to_status_field': False,
     }
 
     try:
@@ -285,13 +268,11 @@ def update(id):
         extra_vars['datarequest'] = current_datarequest
         extra_vars['original_title'] = current_datarequest.get('title')
         post_result = _process_post(constants.UPDATE_DATAREQUEST, context)
-        if not isinstance(post_result, dict):
+        if isinstance(post_result, dict):
+            extra_vars.update(post_result)
+            return tk.render('datarequests/edit.html', extra_vars=extra_vars)
+        else:
             return post_result
-        extra_vars.update(post_result)
-
-        extra_vars['requesting_organisation_options'] = _requesting_organisation_options()
-        extra_vars['access_to_status_field'] = _can_edit_status(current_datarequest)
-        return tk.render('datarequests/edit.html', extra_vars=extra_vars)
     except tk.ObjectNotFound as e:
         log.warning(e)
         return tk.abort(404, tk._('Data Request %s not found') % id)
@@ -446,6 +427,7 @@ def comment(id):
 
                 h.flash_notice(flash_message)
 
+                # CDP: redirect so a page refresh does not post the comment again.
                 return tk.redirect_to(tk.url_for('datarequest.comment', id=id))
 
             except tk.NotAuthorized as e:

@@ -53,6 +53,7 @@ setup(
 
         [ckan.plugins]
         datarequests=ckanext.datarequests.plugin:DataRequestsPlugin
+        datarequests_cdp=ckanext.datarequests_cdp.plugin:DataRequestsCdpPlugin
 
         [babel.extractors]
         ckan = ckan.lib.extract:extract_ckan

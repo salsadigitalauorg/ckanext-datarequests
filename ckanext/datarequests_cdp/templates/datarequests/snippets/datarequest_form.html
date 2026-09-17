@@ -1,0 +1,112 @@
+{% import 'macros/form.html' as form %}
+
+{% set title = data.get('title', '') %}
+{% set description = data.get('description', '') %}
+{% set form_horizontal = 'form-horizontal' if h.ckan_version()[:3] <= '2.7' else '' %}
+{% set organization_id = data.get('organization_id', h.get_request_param('organization')) %}
+
+{% set data_use_type = data.get('data_use_type', '') %}
+{% set who_will_access_this_data = data.get('who_will_access_this_data', '') %}
+{% set requesting_organisation = data.get('requesting_organisation', '') %}
+{% set data_storage_environment = data.get('data_storage_environment', '') %}
+{% set data_outputs_type = data.get('data_outputs_type', '') %}
+{% set data_outputs_description = data.get('data_outputs_description', '') %}
+{% set status = data.get('status', '') %}
+{% set requested_dataset = data.get('requested_dataset', '') %}
+
+{# This provides a full page that renders a form for publishing a dataset. It can
+then itself be extended to add/remove blocks of functionality. #}
+<form class="dataset-form {{ form_horizontal }}" method="post" data-module="basic-form" action enctype="multipart/form-data">
+  {% if 'csrf_input' in h %}
+    {{ h.csrf_input() }}
+  {% endif %}
+
+  <input type="hidden" id="id" name="id" value="{{ data.get('id', '') }}" />
+
+  {% block errors %}{{ form.errors(errors_summary) }}{% endblock %}
+
+  {% block offering_requested_dataset %}
+    {{ form.hidden('requested_dataset', value=requested_dataset) }}
+  {% endblock %}
+
+  {% block offering_organization_id %}
+    {{ form.hidden('organization_id', value=organization_id) }}
+  {% endblock %}
+
+  {% block offering_title %}
+    {{ form.input('title', id='field-title', label=_('Requested data'), placeholder=_('eg. Data Request Name'), value=title, error=errors['Title'], classes=['control-full', 'control-large'], attrs={'readonly': '', 'class': 'form-control'}) }}
+  {% endblock %}
+
+  {% block offering_data_use_type %}
+    {{ form.select('data_use_type', id='field-data-use-type', label=_('Data use type'), options=[
+        {'value': '', 'text': ''},
+        {'value': 'Service delivery', 'text': _('Service delivery')},
+        {'value': 'Statistical analysis', 'text': _('Statistical analysis')},
+        {'value': 'Situational insights', 'text': _('Situational insights')}
+      ], selected=data_use_type if data_use_type else '', error=errors['Data use type'], is_required=True) }}
+  {% endblock %}
+
+  {% block offering_description %}
+    {% call form.markdown('description', id='field-description', label=_('Purpose of data use'), value=description, error=errors['Purpose of data use'], is_required=True) %}
+      {{ form.info(_('State the Project name and include the aim and the value proposition')) }}
+    {% endcall %}
+  {% endblock %}
+
+  {% block offering_who_will_access_this_data %}
+    {% call form.markdown('who_will_access_this_data', id='field-who-will-access-this-data', label=_('Who will access this data'), value=who_will_access_this_data, error=errors['Who will access this data'], is_required=True) %}
+      {{ form.info(_('Example: Data analysts working on the project.')) }}
+    {% endcall %}
+  {% endblock %}
+
+  {% block offering_requesting_organisation %}
+    {{ form.select('requesting_organisation', id='field-requesting-organisation', label=_('Requesting organisation'), options=h.datarequest_requesting_organisation_options(), selected=requesting_organisation if requesting_organisation else '', error=errors['Requesting organisation'], is_required=True, attrs={'data-module' : 'autocomplete'}) }}
+  {% endblock %}
+
+  {% block offering_data_storage_environment %}
+    {% call form.markdown('data_storage_environment', id='field-data-storage-environment', label=_('Data storage environment'), value=data_storage_environment, error=errors['Data storage environment'], is_required=True) %}
+      {{ form.info(_('State the data storage environment details and if compliant with QLD Government Cyber Security requirements.')) }}
+    {% endcall %}
+  {% endblock %}
+
+  {% block offering_data_outputs_type %}
+    {{ form.select('data_outputs_type', id='field-data-output-type', label=_('Data outputs type'), options=[
+        {'value': '', 'text': ''},
+        {'value': 'New dataset', 'text': _('New dataset')},
+        {'value': 'Improved original dataset', 'text': _('Improved original dataset')},
+        {'value': 'Report', 'text': _('Report')},
+        {'value': 'Insight', 'text': _('Insight')},
+        {'value': 'Outcome', 'text': _('Outcome')},
+        {'value': 'Algorithm', 'text': _('Algorithm')},
+        {'value': 'Other (Describe below)', 'text': _('Other (Describe below)')}
+      ], selected=data_outputs_type if data_outputs_type else '', error=errors['Data outputs type'], is_required=True) }}
+  {% endblock %}
+
+  {% block offering_data_outputs_description %}
+    {% call form.markdown('data_outputs_description', id='field-data-outputs-description', label=_('Data outputs description'), value=data_outputs_description, error=errors['Data outputs description'], is_required=True) %}
+      {{ form.info(_('Other Data output type, will personal information be included, what is the intended audience for the outputs, and will any data be made open?')) }}
+    {% endcall %}
+  {% endblock %}
+
+  {% block offering_status %}
+    {% if show_status %}
+      {{ form.select('status', id='field-status', label=_('Status'), options=h.get_status_list(), selected=status if status else '', error=errors['Status'], is_required=True) }}
+    {% endif %}
+  {% endblock %}
+
+  {% if g.recaptcha_publickey %}
+    {% snippet "user/snippets/recaptcha.html", public_key=g.recaptcha_publickey %}
+  {% endif %}
+
+  {% block form_actions %}
+    <div class="form-actions">
+      {% block delete_button %}
+        {% if h.check_access('delete_datarequest', {'id': data.get('id', '')}) and not data.state == 'deleted' %}
+          {% set locale = h.dump_json({'content': _('Are you sure you want to delete this data request?')}) %}
+          <a class="btn btn-danger pull-left" href="{% url_for 'datarequest.delete', id=data.get('id') %}" data-module="confirm-action" data-module-i18n="{{ locale }}">{% block delete_button_text %}{{ _('Delete') }}{% endblock %}</a>
+        {% endif %}
+      {% endblock %}
+      <button class="btn btn-primary" type="submit" name="save">{% block save_button_text %}{{ _('Create Data Request') }}{% endblock %}</button>
+    </div>
+  {% endblock %}
+
+</form>

@@ -3,13 +3,14 @@ import pytest
 from sqlalchemy import text
 
 from ckan import model
+from ckanext.datarequests.tests.cdp.conftest import cdp_plugins
 
 
 def _facet_names(listing, facet):
     return {item["name"]: item["count"] for item in listing["facets"].get(facet, {}).get("items", [])}
 
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+@cdp_plugins
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestVisibleRules:
 
@@ -72,7 +73,7 @@ class TestVisibleRules:
         assert scenario.listing_ids(scenario.sysadmin) == [legacy["id"]]
 
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+@cdp_plugins
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestListingPages:
 

@@ -13,7 +13,7 @@
   {% if h.check_access('comment_datarequest', {'id':datarequest.id }) %}
     <div class="comment-new">
 
-      {% set create_comment_error = updated_comment is defined and updated_comment['comment']['id'] == '' %}
+      {% set create_comment_error = updated_comment is defined and updated_comment.id == '' %}
 
       {% if create_comment_error %}
         <a name="comment_focus"></a>

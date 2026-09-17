@@ -1,1 +1,1 @@
-Queensland Government Internal Data Catalogue – Data access request
+[{{ site_title }}] Data Request {{ datarequest['title'] }} created in organization {{ datarequest['organization']['title'] }}!

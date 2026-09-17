@@ -1,9 +1,10 @@
 import pytest
 
 from ckan.tests import factories
+from ckanext.datarequests.tests.cdp.conftest import cdp_plugins
 
 
-@pytest.mark.ckan_config("ckan.plugins", "activity datarequests")
+@cdp_plugins
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestDataRequestPages:
 

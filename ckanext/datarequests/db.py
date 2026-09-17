@@ -23,11 +23,14 @@ import logging
 
 from ckan import model
 from ckan.model.meta import metadata
+# CDP: current_user and h for the Visible rules in get_ordered_by_date.
 from ckan.plugins.toolkit import current_user, h
 from ckanext.datarequests import constants
 
 from sqlalchemy import func
+# Fork, not CDP: SQLAlchemy 2.0 moved declarative_base to sqlalchemy.orm.
 from sqlalchemy.orm import declarative_base
+# CDP: case pins the user's own requests first.
 from sqlalchemy.sql import case
 from sqlalchemy.sql.expression import or_
 
@@ -58,6 +61,7 @@ datarequests_table = sa.Table('datarequests', metadata,
                               if closing_circumstances_enabled else None,
                               sa.Column('approx_publishing_date', sa.types.DateTime, primary_key=False, default=None)
                               if closing_circumstances_enabled else None,
+                              # CDP: the extra form fields, Status, the requested dataset, and State for soft delete.
                               sa.Column('data_use_type', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
                               sa.Column('who_will_access_this_data', sa.types.Unicode(constants.DESCRIPTION_MAX_LENGTH), primary_key=False, default=u''),
                               sa.Column('requesting_organisation', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
@@ -67,6 +71,7 @@ datarequests_table = sa.Table('datarequests', metadata,
                               sa.Column('status', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u'Assigned'),
                               sa.Column('requested_dataset', sa.types.Unicode(constants.MAX_LENGTH_255), primary_key=False, default=u''),
                               sa.Column('state', sa.types.UnicodeText, default=model.core.State.ACTIVE),
+                              # CDP: end
                               extend_existing=True,
                               )
 
@@ -88,11 +93,13 @@ followers_table = sa.Table('datarequests_followers', metadata,
                            )
 
 
+# CDP: soft delete. Every query below filters on _active.
 def _active(cls):
     # Rows created before the state column existed are null and count as active.
     return or_(cls.state == model.core.State.ACTIVE, cls.state.is_(None))
 
 
+# CDP: StatefulObjectMixin gives delete() and State for soft delete.
 class DataRequest(model.core.StatefulObjectMixin, model.DomainObject, Base):
 
     __table__ = datarequests_table
@@ -115,10 +122,12 @@ class DataRequest(model.core.StatefulObjectMixin, model.DomainObject, Base):
     def get_ordered_by_date(cls, organization_id=None, user_id=None, closed=None, q=None, desc=False, status=None, state=None):
         '''Personalized query'''
         query = model.Session.query(cls).autoflush(False)
+        # CDP: soft delete; status and state parameters added to the signature.
         if state is None:
             query = query.filter(_active(cls))
         else:
             query = query.filter_by(state=state)
+        # CDP: end
 
         params = {}
 
@@ -131,6 +140,7 @@ class DataRequest(model.core.StatefulObjectMixin, model.DomainObject, Base):
         if closed is not None:
             params['closed'] = closed
 
+        # CDP: Status filter.
         if status is not None:
             params['status'] = status
 
@@ -142,6 +152,7 @@ class DataRequest(model.core.StatefulObjectMixin, model.DomainObject, Base):
 
         order_by_filter = cls.open_time.desc() if desc else cls.open_time.asc()
 
+        # CDP: the Visible rules and own-requests-first ordering, to the end of this method.
         # Sysadmins see every request. Everyone else sees their own plus those
         # of organisations they belong to.
         if not current_user.sysadmin:
@@ -168,6 +179,7 @@ class DataRequest(model.core.StatefulObjectMixin, model.DomainObject, Base):
             query = query.order_by(order_by_filter)
 
         return query.all()
+        # CDP: end
 
     @classmethod
     def get_open_datarequests_number(cls):
@@ -220,11 +232,14 @@ class DataRequestFollower(model.DomainObject, Base):
 
 def init_db(deprecated_model=None):
 
+    # Fork, not CDP: only create this extension's tables.
     metadata.create_all(model.meta.engine, tables=[datarequests_table, comments_table, followers_table])
 
     update_db()
 
 
+# Fork, not CDP: rewritten to inspect the live schema, because upstream's check
+# against the declared metadata never finds a missing column.
 def update_db(deprecated_model=None):
     '''
     Add columns introduced after the datarequests table was first created.
@@ -245,6 +260,7 @@ def update_db(deprecated_model=None):
             ('close_circumstance', 'varchar({0}) NULL'.format(constants.CLOSE_CIRCUMSTANCE_MAX_LENGTH)),
             ('approx_publishing_date', 'timestamp NULL'),
         ]
+    # CDP: columns this fork adds.
     new_columns += [
         ('data_use_type', 'varchar(255) NULL'),
         ('who_will_access_this_data', 'character varying(1000) NULL'),
@@ -256,6 +272,7 @@ def update_db(deprecated_model=None):
         ('requested_dataset', 'text'),
         ('state', 'text'),
     ]
+    # CDP: end
 
     with engine.begin() as connection:
         for name, column_type in new_columns:
@@ -263,6 +280,7 @@ def update_db(deprecated_model=None):
                 log.info("DataRequests-UpdateDB: '%s' field does not exist, adding...", name)
                 connection.execute(sa.DDL('ALTER TABLE "datarequests" ADD COLUMN "{0}" {1}'.format(name, column_type)))
 
+        # CDP: widen title to NAME_MAX_LENGTH.
         if 'title' in columns and getattr(columns['title']['type'], 'length', None) == 100:
             log.info("DataRequests-UpdateDB: 'title' field length is 100, changing to %d...", constants.NAME_MAX_LENGTH)
             connection.execute(sa.DDL('ALTER TABLE "datarequests" ALTER COLUMN "title" TYPE varchar({0})'.format(constants.NAME_MAX_LENGTH)))
