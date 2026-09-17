@@ -13,23 +13,43 @@ and pinned from the catalogue's `requirements.txt`. The package version inside
 
 [![Tests](https://github.com/salsadigitalauorg/ckanext-datarequests/actions/workflows/test.yml/badge.svg?branch=develop)](https://github.com/salsadigitalauorg/ckanext-datarequests/actions/workflows/test.yml)
 
+## Two plugins
+
+| Plugin | Holds |
+|---|---|
+| `datarequests` | Upstream's extension plus the few edits the boundary rule allows. |
+| `datarequests_cdp` | Everything specific to the catalogue: templates, email templates, Status and form helpers, the Visible and Status auth rules, CDP field validation and notification routing. |
+
+Enable both, with `datarequests_cdp` first so its templates and chained auth
+and action functions take precedence:
+
+```
+ckan.plugins = ... datarequests_cdp datarequests ...
+```
+
+`datarequests` on its own behaves like upstream, apart from the edits below.
+
 ## Boundary rule
 
 Upstream-owned files are kept as close to upstream as possible so that the
 next sync is a plain merge. They may only carry:
 
-- the data model and migrations (`db.py`: the CDP columns, `state`, `update_db`)
-- dictize/undictize of the CDP fields and the Visible rules in list filtering (`actions.py`)
+- the data model and migrations (`db.py`: the CDP columns, `state`, `update_db`; the title length in `constants.py`)
+- dictize/undictize of the CDP fields, soft delete, and the Visible rules and Status filter in list filtering (`actions.py`, and the `status` query parameter in the controller)
 - the form field pass-through hook, `ckanext.datarequests.extra_fields` (controller)
-- the notification switch, `ckanext.datarequests.send_notifications` (`actions.py`)
-- the plugin entry point in `setup.py`
+- the redirect back to the comment page after posting a comment (controller)
+- the notification switch, `ckanext.datarequests.send_notifications`, which also keeps upstream's mail quiet while `datarequests_cdp` is loaded (`actions.py`)
+- letting a caller keep the duplicate title check off during an update (`actions.py`)
+- the plugin entry point in `setup.py` and the template path in `MANIFEST.in`
 
-Everything else that is specific to the catalogue (templates, helpers, auth
-rules, validation, notification routing) belongs in the `datarequests_cdp`
-plugin, which will live in this repository next to `datarequests`. Until that
-plugin exists those behaviours still sit in the upstream files; do not add to
-them. The decision record is `docs/adr/0001-datarequests-fork-strategy.md` in
-the catalogue repository.
+Everything else belongs in `datarequests_cdp`. Check with:
+
+```
+git diff <upstream tag> --stat -- ckanext/datarequests ':!ckanext/datarequests/tests'
+```
+
+The decision record is `docs/adr/0001-datarequests-fork-strategy.md` in the
+catalogue repository.
 
 ## Syncing with upstream
 
@@ -43,11 +63,14 @@ git merge <tag>
 Merge a release tag, never rebase: the fork's history must keep sharing an
 ancestor with upstream so that the following sync is a merge too. Expect
 conflicts in the CI workflow (take upstream's file as is), the test config in
-`.docker/test.ini`, the controller, the database model, the helpers module and
-the comment, edit, new, show and organisation listing templates. Resolve each to the fork's behaviour expressed
+`.docker/test.ini`, the controller, the actions module and the database model.
+Templates, helpers, auth and the validator are upstream's, so take upstream's
+side and check whether the matching `datarequests_cdp` override needs the same
+change. Resolve each conflict to the fork's behaviour expressed
 with upstream's variable names, then run the tests on every CKAN version in
-the matrix (see "Running the unit tests locally"). Tag the merged `develop`
-as `qld-internal-<major>.<minor>.<patch>`: major for an upstream sync or a
+the matrix (see "Running the unit tests locally"). Release by merging
+`develop` into `master` and tagging the master merge commit
+`qld-internal-<major>.<minor>.<patch>`: major for an upstream sync or a
 change to the supported CKAN versions, minor for new behaviour, patch for fixes.
 
 ## Configuration
@@ -57,7 +80,7 @@ Settings this fork adds on top of upstream's:
 | Setting | Default | Purpose |
 |---|---|---|
 | `ckanext.datarequests.extra_fields` | empty | Form fields beyond title, description and organisation that the POST handler passes to the action layer. The catalogue sets the eight CDP fields. |
-| `ckanext.datarequests.send_notifications` | `true` | Set to `false` to send no Data Request notification email from that environment. Develop runs with it off. |
+| `ckanext.datarequests.send_notifications` | `true` | Set to `false` to send no Data Request notification email from that environment. |
 | `ckanext.datarequests.internal_data_catalogue_support_team_email` | unset | Mailbox notified on every Data Request event. |
 | `ckanext.datarequests.internal_data_catalogue_support_team_name` | unset | Display name for that mailbox. |
 
@@ -129,7 +152,7 @@ every stack joins the shared `amazeeio-network` with a service named
 database. The `ckanext` mount picks up local edits without rebuilding.
 
 CDP-specific tests live under `ckanext/datarequests/tests/cdp/`. Upstream
-tests that assert behaviour this fork deliberately changes are listed, with
+tests that assert behaviour the fork changes inside `datarequests` are listed, with
 reasons, in `ckanext/datarequests/tests/cdp/deselected-upstream-tests.txt` and
 skipped by `ckanext/conftest.py`.
 
