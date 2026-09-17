@@ -1,5 +1,6 @@
 import pytest
 
+import ckan.plugins as plugins
 import ckan.plugins.toolkit as tk
 from ckan.cli.cli import ckan as ckan_cli
 from ckan.tests import factories
@@ -33,6 +34,19 @@ def redirect_target(response):
     """The path a redirect response points at, without the leading slash."""
     assert response.status_code == 302, response.body
     return response.headers["Location"].split("://", 1)[-1].split("/", 1)[-1]
+
+
+@pytest.fixture
+def with_plugins(ckan_config):
+    """Load and unload the test's plugins in one step each.
+
+    CKAN 2.10's own fixture unloads them one at a time in reverse, which leaves
+    datarequests_cdp chained to actions that datarequests has just taken away.
+    """
+    wanted = [name for name in tk.aslist(ckan_config["ckan.plugins"]) if not plugins.plugin_loaded(name)]
+    plugins.load(*wanted)
+    yield
+    plugins.unload(*[name for name in tk.aslist(ckan_config["ckan.plugins"]) if plugins.plugin_loaded(name)])
 
 
 @pytest.fixture

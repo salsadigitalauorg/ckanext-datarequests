@@ -29,3 +29,7 @@ datarequests/tests/test_actions.py::ActionsTest::test_delete_datarequest_3_org_i
 # Posting a comment redirects back to the comment page.
 datarequests/tests/test_ui_controller.py::UIControllerTest::test_comment_list_1
 datarequests/tests/test_ui_controller.py::UIControllerTest::test_comment_list_2
+
+# The test config loads datarequests_cdp, which keeps upstream's sender quiet.
+datarequests/tests/test_actions.py::ActionsTest::test_send_mail_exception_no_risen
+datarequests/tests/test_actions.py::ActionsTest::test_send_mail_two_users
