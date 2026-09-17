@@ -3,9 +3,7 @@ from ckan import authz
 
 
 def _datarequest(data_dict):
-    # Callers often pass only the id.
-    if 'user_id' in data_dict and 'organization_id' in data_dict:
-        return data_dict
+    # Always read the stored request: ownership fields in an API call's data_dict are the caller's claim.
     return tk.get_action('show_datarequest')({'ignore_auth': True}, {'id': data_dict.get('id')})
 
 
@@ -32,9 +30,15 @@ def show_datarequest(next_auth, context, data_dict):
 
 @tk.chained_auth_function
 def update_datarequest(next_auth, context, data_dict):
-    if next_auth(context, data_dict)['success']:
+    datarequest = _datarequest(data_dict)
+    if next_auth(context, datarequest)['success']:
         return {'success': True}
-    return {'success': can_change_status(context.get('auth_user_obj'), _datarequest(data_dict))}
+    return {'success': can_change_status(context.get('auth_user_obj'), datarequest)}
+
+
+@tk.chained_auth_function
+def delete_datarequest(next_auth, context, data_dict):
+    return next_auth(context, _datarequest(data_dict))
 
 
 @tk.chained_auth_function

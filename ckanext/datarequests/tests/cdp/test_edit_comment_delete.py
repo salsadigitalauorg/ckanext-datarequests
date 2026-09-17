@@ -62,6 +62,15 @@ class TestEditPage:
         assert scenario.member.get("/datarequest/" + datarequest["id"]).status_code == 200
         assert scenario.member.get(_edit_url(datarequest)).status_code == 403
 
+    @pytest.mark.parametrize("action", ["show_datarequest", "update_datarequest", "delete_datarequest"])
+    def test_claiming_ownership_in_the_api_call_does_not_grant_access(self, scenario, action):
+        datarequest = scenario.create(scenario.requester)
+        claim = scenario.fields(id=datarequest["id"], user_id=scenario.outsider.user["id"], organization_id=scenario.other_org["id"])
+
+        response = scenario.app.post("/api/action/" + action, json=claim, headers=scenario.outsider.headers, status=403)
+
+        assert response.json["success"] is False
+
     def test_nobody_can_close_a_request(self, scenario):
         datarequest = scenario.create(scenario.requester)
 

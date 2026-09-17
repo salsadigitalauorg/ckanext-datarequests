@@ -34,6 +34,7 @@ class DataRequestsCdpPlugin(p.SingletonPlugin):
         return {
             'show_datarequest': auth.show_datarequest,
             'update_datarequest': auth.update_datarequest,
+            'delete_datarequest': auth.delete_datarequest,
             'close_datarequest': auth.close_datarequest,
         }
 

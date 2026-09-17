@@ -37,7 +37,10 @@ def prefilled_from_dataset(datarequest):
     dataset_id = tk.request.args.get('id')
     if not dataset_id:
         return datarequest
-    dataset = tk.get_action('package_show')({}, {'id': dataset_id})
+    try:
+        dataset = tk.get_action('package_show')({}, {'id': dataset_id})
+    except (tk.ObjectNotFound, tk.NotAuthorized):
+        return datarequest
     return dict(
         datarequest,
         title=dataset.get('title', ''),

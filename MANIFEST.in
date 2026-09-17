@@ -1,4 +1,5 @@
 recursive-include ckanext/datarequests/templates *
 recursive-include ckanext/datarequests/public *
 recursive-include ckanext/datarequests/fanstatic *
-recursive-include ckanext/datarequests/i18n *recursive-include ckanext/datarequests_cdp/templates *
+recursive-include ckanext/datarequests/i18n *
+recursive-include ckanext/datarequests_cdp/templates *
