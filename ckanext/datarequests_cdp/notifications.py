@@ -7,6 +7,8 @@ from ckan.lib import mailer
 
 from ckanext.datarequests import db
 
+from . import auth
+
 log = logging.getLogger(__name__)
 
 
@@ -27,10 +29,11 @@ def _requester(datarequest):
 
 
 def _followers(context, datarequest):
-    """Followers other than the person acting."""
-    follower_ids = [follower.user_id for follower in db.DataRequestFollower.get(datarequest_id=datarequest['id'])]
+    """Followers other than the person acting, if the Data Request is still Visible to them."""
     acting_user_id = context['auth_user_obj'].id
-    return [recipient for user_id in follower_ids if user_id != acting_user_id for recipient in _user(user_id)]
+    users = [model.User.get(follower.user_id) for follower in db.DataRequestFollower.get(datarequest_id=datarequest['id'])]
+    return [{'email': user.email, 'name': user.name} for user in users
+            if user and user.email and user.id != acting_user_id and auth.is_visible_to(user, datarequest)]
 
 
 def _dataset_point_of_contact(datarequest):

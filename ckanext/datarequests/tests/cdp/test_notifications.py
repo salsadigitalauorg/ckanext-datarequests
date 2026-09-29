@@ -90,6 +90,30 @@ class TestNotificationRecipients:
 
 
 @cdp_plugins
+@pytest.mark.usefixtures("with_plugins", "datarequest_tables")
+class TestFollowersSeeTheRequest:
+
+    @pytest.mark.parametrize("action", ["follow_datarequest", "unfollow_datarequest"])
+    def test_user_who_cannot_see_the_request_is_refused(self, scenario, action):
+        datarequest = scenario.create(scenario.requester)
+
+        response = scenario.app.post("/api/action/" + action, json={"id": datarequest["id"]},
+                                     headers=scenario.outsider.headers, status=403)
+
+        assert response.json["success"] is False
+
+    def test_follower_who_leaves_the_owning_organisation_is_not_emailed(self, scenario, mail_queue):
+        datarequest = scenario.create(scenario.requester)
+        scenario.follow(datarequest)
+        scenario.sysadmin.call("organization_member_delete", id=scenario.owning_org["id"], username=scenario.follower.user["name"])
+        mail_queue.clear()
+
+        _new_comment(scenario.editor, datarequest)
+
+        assert scenario.follower.user["email"] not in mail_queue.recipients()
+
+
+@cdp_plugins
 @pytest.mark.ckan_config("ckanext.datarequests.send_notifications", False)
 @pytest.mark.usefixtures("with_plugins", "datarequest_tables")
 class TestNotificationsSwitchedOff:
