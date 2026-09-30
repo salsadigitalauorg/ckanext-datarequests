@@ -112,6 +112,7 @@ class Scenario:
         self.owning_org = factories.Organization(users=[
             {"name": self.editor.user["name"], "capacity": "editor"},
             {"name": self.member.user["name"], "capacity": "member"},
+            {"name": self.follower.user["name"], "capacity": "member"},
         ])
         # The Requesting Organisation options come from the organisations the
         # requester belongs to, so a requester with none cannot submit the form.
