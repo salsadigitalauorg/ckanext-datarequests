@@ -164,7 +164,7 @@ docker compose run --rm -v "$PWD/ckanext:/srv/app/ckanext" ckan sh -c \
   '. $APP_DIR/bin/activate && cd $APP_DIR && ckan -c $CKAN_INI db init && pytest --ckan-ini=$CKAN_INI ckanext'
 ```
 
-Use `SOLR_VERSION=8` for CKAN 2.10. Run one CKAN version's stack at a time:
+Run one CKAN version's stack at a time:
 every stack joins the shared `amazeeio-network` with a service named
 `postgres`, so two running stacks make that hostname resolve to either
 database. The `ckanext` mount picks up local edits without rebuilding.
