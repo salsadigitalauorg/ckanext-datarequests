@@ -485,9 +485,11 @@ def delete_comment(datarequest_id, comment_id):
 
 # CDP: Implements the follow/unfollow functionality via HTMX.
 def _render_followers(datarequest_id):
-    context = _get_context()
-    datarequest = tk.get_action(constants.SHOW_DATAREQUEST)(
-        context, {'id': datarequest_id})
+    try:
+        datarequest = tk.get_action(constants.SHOW_DATAREQUEST)(
+            _get_context(), {'id': datarequest_id})
+    except tk.ObjectNotFound:
+        return tk.abort(404, tk._('Data Request %s not found') % datarequest_id)
     return tk.render_snippet(
         'datarequests/snippets/followers.html',
         {'datarequest': datarequest})
