@@ -36,6 +36,8 @@ class DataRequestsCdpPlugin(p.SingletonPlugin):
             'update_datarequest': auth.update_datarequest,
             'delete_datarequest': auth.delete_datarequest,
             'close_datarequest': auth.close_datarequest,
+            'follow_datarequest': auth.follow_datarequest,
+            'unfollow_datarequest': auth.unfollow_datarequest,
         }
 
     def get_helpers(self):

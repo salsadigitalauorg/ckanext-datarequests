@@ -1,7 +1,5 @@
 import pytest
 
-import ckan.plugins as plugins
-import ckan.plugins.toolkit as tk
 from ckan.cli.cli import ckan as ckan_cli
 from ckan.tests import factories
 
@@ -18,11 +16,8 @@ STATUS_VALUES = (
 
 
 def migrate_plugin_tables(migrate_db_for):
-    # clean_db only runs core migrations. From CKAN 2.11 the activity plugin
-    # carries its own; on 2.10 its tables are still in core and asking alembic
-    # for plugin migrations fails and breaks the CLI calls that follow.
-    if tk.check_ckan_version(min_version="2.11"):
-        migrate_db_for("activity")
+    # clean_db only runs core migrations; the activity plugin carries its own.
+    migrate_db_for("activity")
 
 
 def run_datarequests_command(cli, command):
@@ -34,19 +29,6 @@ def redirect_target(response):
     """The path a redirect response points at, without the leading slash."""
     assert response.status_code == 302, response.body
     return response.headers["Location"].split("://", 1)[-1].split("/", 1)[-1]
-
-
-@pytest.fixture
-def with_plugins(ckan_config):
-    """Load and unload the test's plugins in one step each.
-
-    CKAN 2.10's own fixture unloads them one at a time in reverse, which leaves
-    datarequests_cdp chained to actions that datarequests has just taken away.
-    """
-    wanted = [name for name in tk.aslist(ckan_config["ckan.plugins"]) if not plugins.plugin_loaded(name)]
-    plugins.load(*wanted)
-    yield
-    plugins.unload(*[name for name in tk.aslist(ckan_config["ckan.plugins"]) if plugins.plugin_loaded(name)])
 
 
 @pytest.fixture
@@ -112,6 +94,7 @@ class Scenario:
         self.owning_org = factories.Organization(users=[
             {"name": self.editor.user["name"], "capacity": "editor"},
             {"name": self.member.user["name"], "capacity": "member"},
+            {"name": self.follower.user["name"], "capacity": "member"},
         ])
         # The Requesting Organisation options come from the organisations the
         # requester belongs to, so a requester with none cannot submit the form.

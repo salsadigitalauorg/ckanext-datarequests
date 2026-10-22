@@ -17,15 +17,36 @@ def can_change_status(user, datarequest):
     return bool(user) and (user.sysadmin or _has_owning_organisation_permission(user, datarequest, 'update_dataset'))
 
 
-@tk.chained_auth_function
-def show_datarequest(next_auth, context, data_dict):
-    """A Data Request is Visible to its requester and to members of the Owning Organisation."""
+def is_visible_to(user, datarequest):
+    """A Data Request is Visible to sysadmins, its requester and members of the Owning Organisation."""
+    return (user.sysadmin or datarequest.get('user_id') == user.id
+            or _has_owning_organisation_permission(user, datarequest, 'read'))
+
+
+def _visible(context, data_dict):
     user = context.get('auth_user_obj')
     if not user or user.is_anonymous:
         return {'success': False}
-    datarequest = _datarequest(data_dict)
-    visible = datarequest.get('user_id') == user.id or _has_owning_organisation_permission(user, datarequest, 'read')
-    return {'success': visible}
+    return {'success': is_visible_to(user, _datarequest(data_dict))}
+
+
+@tk.chained_auth_function
+def show_datarequest(next_auth, context, data_dict):
+    return _visible(context, data_dict)
+
+
+@tk.chained_auth_function
+def follow_datarequest(next_auth, context, data_dict):
+    # Followers are emailed the request's updates and comments. The follow button checks without an id,
+    # and it only renders on the request's own page, which is already Visible.
+    if not (data_dict or {}).get('id'):
+        return next_auth(context, data_dict)
+    return _visible(context, data_dict)
+
+
+@tk.chained_auth_function
+def unfollow_datarequest(next_auth, context, data_dict):
+    return _visible(context, data_dict)
 
 
 @tk.chained_auth_function

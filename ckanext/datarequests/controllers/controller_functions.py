@@ -483,14 +483,39 @@ def delete_comment(datarequest_id, comment_id):
         return tk.abort(403, tk._('You are not authorized to delete this comment'))
 
 
+# CDP: Implements the follow/unfollow functionality via HTMX.
+def _render_followers(datarequest_id):
+    try:
+        datarequest = tk.get_action(constants.SHOW_DATAREQUEST)(
+            _get_context(), {'id': datarequest_id})
+    except tk.ObjectNotFound:
+        return tk.abort(404, tk._('Data Request %s not found') % datarequest_id)
+    return tk.render_snippet(
+        'datarequests/snippets/followers.html',
+        {'datarequest': datarequest})
+
+
 def follow(id):
-    # Method is not called
-    pass
+    try:
+        tk.get_action(constants.FOLLOW_DATAREQUEST)(_get_context(), {'id': id})
+    except (tk.ValidationError, tk.ObjectNotFound) as e:
+        log.warning(e)
+    except tk.NotAuthorized as e:
+        log.warning(e)
+        return tk.abort(403, tk._('Unauthorized to follow Data Request %s') % id)
+    return _render_followers(id)
 
 
 def unfollow(id):
-    # Method is not called
-    pass
+    try:
+        tk.get_action(constants.UNFOLLOW_DATAREQUEST)(_get_context(), {'id': id})
+    except (tk.ValidationError, tk.ObjectNotFound) as e:
+        log.warning(e)
+    except tk.NotAuthorized as e:
+        log.warning(e)
+        return tk.abort(403, tk._('Unauthorized to unfollow Data Request %s') % id)
+    return _render_followers(id)
+# CDP: end
 
 
 def purge(user_id):

@@ -985,3 +985,30 @@ class UIControllerTest(unittest.TestCase):
 
     def test_unfollow(self):
         controller.unfollow('example_uuidv4')
+
+    @parameterized.expand([
+        (controller.follow,),
+        (controller.unfollow,),
+    ])
+    def test_follow_unfollow_not_found(self, view):
+        controller.tk.get_action.return_value.side_effect = controller.tk.ObjectNotFound('Data Request not found')
+
+        result = view('example_uuidv4')
+
+        self.assertEqual(result, 'aborted')
+        controller.tk.abort.assert_called_once_with(404, 'Data Request example_uuidv4 not found')
+        controller.tk.render_snippet.assert_not_called()
+
+    def test_unfollow_when_not_following_rerenders(self):
+        # unfollow_datarequest raises ObjectNotFound when the user isn't following.
+        def get_action(name):
+            action = MagicMock()
+            if name == constants.UNFOLLOW_DATAREQUEST:
+                action.side_effect = controller.tk.ObjectNotFound('Not following')
+            return action
+        controller.tk.get_action.side_effect = get_action
+
+        result = controller.unfollow('example_uuidv4')
+
+        self.assertEqual(result, controller.tk.render_snippet.return_value)
+        controller.tk.abort.assert_not_called()
