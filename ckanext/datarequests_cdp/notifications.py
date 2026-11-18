@@ -7,14 +7,14 @@ from ckan.lib import mailer
 
 from ckanext.datarequests import db
 
-from . import auth
+from . import auth, helpers
 
 log = logging.getLogger(__name__)
 
 
 def _support():
     return [{
-        'email': tk.config.get('ckanext.datarequests.internal_data_catalogue_support_team_email'),
+        'email': helpers.support_team_email(),
         'name': tk.config.get('ckanext.datarequests.internal_data_catalogue_support_team_name'),
     }]
 
@@ -62,6 +62,7 @@ def _send(template, recipients, datarequest, job_title, comment=None):
                 'user': recipient,
                 'site_title': tk.config.get('ckan.site_title'),
                 'site_url': tk.config.get('ckan.site_url'),
+                'support_team_email': helpers.support_team_email(),
             }
             subject = tk.render('emails/subjects/{0}.txt'.format(template), extra_vars)
             body = tk.render('emails/bodies/{0}.txt'.format(template), extra_vars)

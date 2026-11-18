@@ -11,6 +11,10 @@ STATUS_LIST = [
 ]
 
 
+def support_team_email():
+    return tk.config.get('ckanext.datarequests.internal_data_catalogue_support_team_email')
+
+
 def get_status_list():
     return STATUS_LIST
 

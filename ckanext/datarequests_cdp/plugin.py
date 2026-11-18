@@ -47,4 +47,5 @@ class DataRequestsCdpPlugin(p.SingletonPlugin):
             'datarequest_requesting_organisation_options': helpers.requesting_organisation_options,
             'datarequest_can_edit_status': helpers.can_edit_status,
             'datarequest_prefilled_from_dataset': helpers.prefilled_from_dataset,
+            'datarequest_support_team_email': helpers.support_team_email,
         }
