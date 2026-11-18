@@ -23,8 +23,8 @@
     {% endtrans %}
   </p>
   <p>
-    {% trans %}
-      More information about the data access request process can be found at <a href="https://internal.data.qld.gov.au/dataset/internal-data-catalogue-guidance/resource/234f0b0f-eea9-4e12-949d-d3a22ad6e2f8/download/idc-data-access-request-guidance.docx">idc-data-access-request-guidance</a>. If you require assistance in structuring your data access request, please contact the Internal Data Catalogue management team at <a href="mailto:qgcdgdatadiscovery@chde.qld.gov.au">qgcdgdatadiscovery@chde.qld.gov.au</a>.
+    {% trans support_team_email=h.datarequest_support_team_email() %}
+      More information about the data access request process can be found at <a href="https://internal.data.qld.gov.au/dataset/internal-data-catalogue-guidance/resource/234f0b0f-eea9-4e12-949d-d3a22ad6e2f8/download/idc-data-access-request-guidance.docx">idc-data-access-request-guidance</a>. If you require assistance in structuring your data access request, please contact the Internal Data Catalogue management team at <a href="mailto:{{ support_team_email }}">{{ support_team_email }}</a>.
     {% endtrans %}
   </p>
 {% endblock %}

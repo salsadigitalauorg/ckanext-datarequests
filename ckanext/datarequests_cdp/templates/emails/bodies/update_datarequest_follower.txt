@@ -4,6 +4,6 @@ Requested data: {{ datarequest.title }}
 
 To view the data access request, follow this link: {{ site_url }}/datarequest/{{ datarequest.id }}
 
-If you require assistance, please contact the Internal Data Catalogue management team at qgcdgdatadiscovery@chde.qld.gov.au.
+If you require assistance, please contact the Internal Data Catalogue management team at {{ support_team_email }}.
 
 Do not reply to this email.
